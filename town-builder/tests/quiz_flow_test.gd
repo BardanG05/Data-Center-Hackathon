@@ -155,6 +155,13 @@ func _policy_after_quiz(remaining: int, interval: float) -> void:
 func _restart_and_tutorial_test(total: int, previously_seen: Dictionary) -> void:
 	var old_instance_id: int = game.get_instance_id()
 	game.ui.restart_requested.emit()
+	_check(game.ui.is_modal_open() and game.ui._modal_title.text == "Restart this game?", "Restart opens a confirmation popup")
+	_check(game.simulation.paused, "Restart confirmation pauses the game")
+	game.ui.restart_cancelled.emit()
+	_check(not game.ui.is_modal_open() and not game.simulation.paused, "Cancelling restart keeps the current game running")
+	game.ui.restart_requested.emit()
+	_check(game.ui.is_modal_open(), "Restart can be requested again after cancelling")
+	game.ui.restart_confirmed.emit()
 	await process_frame
 	await process_frame
 	game = current_scene

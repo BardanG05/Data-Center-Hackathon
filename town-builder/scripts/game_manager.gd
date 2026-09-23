@@ -22,10 +22,14 @@ var _speed_before_pause := 1.0
 var tutorial: Tutorial
 var _quiz_elapsed := 0.0
 var _event_answered := false
+var _restart_speed := 1.0
+var _restart_was_paused := false
 
 
 func _ready() -> void:
-	ui.restart_requested.connect(func() -> void: get_tree().reload_current_scene())
+	ui.restart_requested.connect(_on_restart_requested)
+	ui.restart_confirmed.connect(_on_restart_confirmed)
+	ui.restart_cancelled.connect(_on_restart_cancelled)
 	if not data.load_all():
 		ui.show_message("Cannot load game data: " + data.error_message, true)
 		push_error(data.error_message)
@@ -66,6 +70,25 @@ func _begin_play() -> void:
 	_quiz_elapsed = 0.0
 	set_speed(1.0)
 	_check_events()
+
+
+func _on_restart_requested() -> void:
+	if ui.is_modal_open() or simulation.state.get("finished", false):
+		return
+	_restart_speed = simulation.speed
+	_restart_was_paused = simulation.paused
+	simulation.paused = true
+	ui.set_speed(0.0)
+	ui.show_restart_confirmation()
+
+
+func _on_restart_confirmed() -> void:
+	get_tree().reload_current_scene()
+
+
+func _on_restart_cancelled() -> void:
+	ui.hide_restart_confirmation()
+	set_speed(0.0 if _restart_was_paused else _restart_speed)
 
 
 func _process(delta: float) -> void:

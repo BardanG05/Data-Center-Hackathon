@@ -7,6 +7,8 @@ signal upgrade_requested(uid: int, upgrade_id: String)
 signal demolish_requested(uid: int)
 signal speed_requested(speed: float)
 signal restart_requested
+signal restart_confirmed
+signal restart_cancelled
 signal event_option_chosen(index: int)
 signal event_closed
 signal attitude_chosen(option: String)
@@ -78,6 +80,7 @@ var _state: Dictionary = {}
 var _armed := ""
 var _selected: Dictionary = {}
 var _preview: Dictionary = {}
+var _restart_confirmation_open := false
 
 
 func _ready() -> void:
@@ -669,6 +672,46 @@ func show_event(event: Dictionary) -> void:
 	_modal_body.scroll_to_line(0)
 	_set_options(event.get("options", []), false, quiz)
 	_modal_continue.hide()
+
+
+func show_restart_confirmation() -> void:
+	if is_modal_open():
+		return
+	_restart_confirmation_open = true
+	_modal.show()
+	_hover.hide()
+	_set_quiz_layout(false)
+	_modal_kicker.text = "RESTART TOWN"
+	_modal_title.text = "Restart this game?"
+	_modal_body.text = "Your current town, money, buildings, progress and question history will be lost."
+	_modal_options.position.y = 440
+	for child in _modal_options.get_children():
+		_modal_options.remove_child(child)
+		child.queue_free()
+	var restart_button := Button.new()
+	restart_button.text = "Restart town"
+	restart_button.custom_minimum_size = Vector2(760, 48)
+	_style_button(restart_button, true)
+	restart_button.pressed.connect(func() -> void: restart_confirmed.emit())
+	_modal_options.add_child(restart_button)
+	var cancel_button := Button.new()
+	cancel_button.text = "Keep playing"
+	cancel_button.custom_minimum_size = Vector2(760, 48)
+	_style_button(cancel_button, false)
+	cancel_button.pressed.connect(func() -> void: restart_cancelled.emit())
+	_modal_options.add_child(cancel_button)
+	_modal_continue.hide()
+	cancel_button.grab_focus()
+
+
+func hide_restart_confirmation() -> void:
+	if not _restart_confirmation_open:
+		return
+	_restart_confirmation_open = false
+	_modal.hide()
+	for child in _modal_options.get_children():
+		_modal_options.remove_child(child)
+		child.queue_free()
 
 
 func reveal_event(event: Dictionary, chosen: int) -> void:

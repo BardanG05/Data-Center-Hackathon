@@ -29,6 +29,7 @@ After that, the **Next step** bar above the map always shows the most useful act
 - Scroll to zoom and right-drag to pan. Press Space or use the header buttons to pause or change speed.
 - Quick quizzes pause the game every 30 seconds of active play: choose an answer, then read the explanation. Each question appears at most once per game.
 - The renewable-energy policy remains a scheduled decision in 2023.
+- **Restart** asks for confirmation before discarding the current town.
 - At the end, answer "how do you feel about data centres now?" and compare yourself with the survey respondents.
 
 ## Where the numbers come from
