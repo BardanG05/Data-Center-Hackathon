@@ -4,7 +4,14 @@ A Godot 4 hackathon prototype about a fictional Irish town balancing digital inf
 
 ## Run
 
-On this Windows workspace, double-click **`Play.cmd`** to play using the portable Godot runtime in the parent `.tools/` folder. It starts a fresh town each time. For development:
+The portable Windows Godot runtime in the parent `.tools/` folder is stored with [Git LFS](https://git-lfs.com/). After cloning, install Git LFS and run these commands from the repository folder to download the executables:
+
+```powershell
+git lfs install
+git lfs pull
+```
+
+Then double-click **`Play.cmd`** to play. It starts a fresh town each time. For development:
 
 1. Open Godot **4.4 or newer**, standard/GDScript edition.
 2. Choose **Import**, select this folder's `project.godot`, then **Import & Edit**.
