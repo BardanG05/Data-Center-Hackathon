@@ -1,0 +1,162 @@
+{
+ "schema_version": 1,
+ "source": "OpenStreetMap contributors (ODbL), processed by tools/map_build/build_map.py",
+ "imagery": "Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023), CC BY-NC-SA 4.0",
+ "bbox": {
+  "west": -1.95,
+  "east": -1.77,
+  "south": 50.695,
+  "north": 50.765
+ },
+ "legend": {
+  "r": "residential",
+  "c": "town_centre",
+  "o": "open",
+  "i": "industrial",
+  "g": "green",
+  "w": "water",
+  "h": "hospital",
+  "s": "sea"
+ },
+ "width": 48,
+ "height": 30,
+ "rows": [
+  "gggorrrrrrrgrrrrrrrggorroorroogooooooggggggrrrrr",
+  "ggooorrrrrrrgrrrrrrrrrrrgrrroooogoooogrgggggrrrg",
+  "gggorrrrrrrrrrrrrrrgrrrrrrroooooooooggrrggogrrrr",
+  "gggrrrcirrrrrrrrrrgrrrrrrrrrrooooooorgrrgggrrrrr",
+  "ggrrriiggrrrrrrrrgrrrrrrrrrrccooooorggrrgggrrrrr",
+  "ccrrrriggggrrrrrrrrrrrrrrrrrccrrrrororrrrggrrrrr",
+  "cchrrgrrrrrrrrrrrrrrrrrrggrrrrrrrhrgogrrrrrrrrrr",
+  "ccrrrrgrrrrroggrrrrrrrrrrgrgrrrrrhhrorrrrrrrrrrr",
+  "ccrrggggrrrgggggrrrrrrrrrggrrrrcgghcorrrrrhrrrrr",
+  "rrrrrrgrrrrrrrrrrrrrrrrrrrrroorccrrrrgrrrrrrrrrr",
+  "rrrrrrrrrrggrrrrrrrrrrrrrrgoorrrrrgrrrrorrrriooo",
+  "rrrrrrrrrirrgorrrrrrrrrrrrrgorrgrgrrrrrggrrrrroo",
+  "rrgrrrrrrrrrgorrrrrrrrrrrrrrrrggrrrrrrrrggrrrrgo",
+  "rrrrrrgrrrrggrrrrrrrgrrrrrrrrggggrrrrrrrrgrrrrrr",
+  "rrrrrrrrrirrrrgrrogrrrrrrrrrrrrhrrrrrrrrrrrrrrrr",
+  "rrrrrrrcrrrrrrroogrrrrrrrrrrrrrrrrrrrrrrrrrrgrgg",
+  "rrrrrrrrrrrrrrrrogrrrrrrrrrrrcrrrrrrrrrrrrrrrrgg",
+  "rrrrrrrrrrrrrrrrrrrrgrrrrrrrrrrrrrrrrrrrrrgrrrgg",
+  "rrrrrrrgrrrrrrrrrrrrrrrrrrrgrrrrrrrrrrrrrrrrrrgg",
+  "rrrrrrrgrrrrrrrrrrcgrrrrrrggrrsssssssssssrrrrooo",
+  "rrrrrrrrrrrrrrrrrrrrrrssssssssssssssssssssssssss",
+  "rrrrrrrrrrrrrrrrgrssssssssssssssssssssssssssssss",
+  "rrrrorrrrrrrrrrgssssssssssssssssssssssssssssssss",
+  "rrrrorrrgrrrgrssssssssssssssssssssssssssssssssss",
+  "rrrroorrrrrrssssssssssssssssssssssssssssssssssss",
+  "srrroorrrgssssssssssssssssssssssssssssssssssssss",
+  "ssrrrrrrrsssssssssssssssssssssssssssssssssssssss",
+  "sssrrrrrssssssssssssssssssssssssssssssssssssssss",
+  "ssssrhhsssssssssssssssssssssssssssssssssssssssss",
+  "sssssrssssssssssssssssssssssssssssssssssssssssss"
+ ],
+ "labels": [
+  {
+   "name": "Christchurch",
+   "cell": [
+    45,
+    12
+   ]
+  },
+  {
+   "name": "Bournemouth",
+   "cell": [
+    18,
+    19
+   ]
+  },
+  {
+   "name": "Winton",
+   "cell": [
+    19,
+    9
+   ]
+  },
+  {
+   "name": "Charminster",
+   "cell": [
+    22,
+    11
+   ]
+  },
+  {
+   "name": "Westbourne",
+   "cell": [
+    12,
+    17
+   ]
+  },
+  {
+   "name": "Boscombe",
+   "cell": [
+    29,
+    16
+   ]
+  },
+  {
+   "name": "Littledown",
+   "cell": [
+    31,
+    10
+   ]
+  },
+  {
+   "name": "Southbourne",
+   "cell": [
+    40,
+    18
+   ]
+  },
+  {
+   "name": "Iford",
+   "cell": [
+    37,
+    11
+   ]
+  },
+  {
+   "name": "Pokesdown",
+   "cell": [
+    33,
+    14
+   ]
+  },
+  {
+   "name": "Branksome",
+   "cell": [
+    7,
+    16
+   ]
+  },
+  {
+   "name": "Springbourne",
+   "cell": [
+    26,
+    14
+   ]
+  },
+  {
+   "name": "Moordown",
+   "cell": [
+    19,
+    4
+   ]
+  },
+  {
+   "name": "Ensbury Park",
+   "cell": [
+    17,
+    5
+   ]
+  },
+  {
+   "name": "Wallisdown",
+   "cell": [
+    10,
+    7
+   ]
+  }
+ ]
+}

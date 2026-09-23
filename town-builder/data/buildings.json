@@ -1,20 +1,119 @@
 {
   "schema_version": 1,
-  "data_status": "fictional_gameplay_balance",
-  "note": "All amounts are illustrative game units, not measured Irish data-centre statistics.",
+  "data_status": "gameplay_balance",
+  "note": "Game units. Relative sizes follow the KPMG (2025) typical data-centre types, but absolute values are gameplay assumptions, not Bournemouth measurements.",
   "buildings": [
     {
-      "id": "data_centre",
-      "name": "Enterprise Data Centre",
-      "description": "Bring local computing to Cairnbridge. More digital capacity needs more electricity and water.",
-      "level": 1,
-      "cost": 800,
-      "electricity_usage": 28,
-      "water_usage": 14,
-      "compute_capacity": 100,
-      "visual_kind": "data_centre",
-      "color": "70caba",
-      "sprite_path": ""
+      "id": "enterprise",
+      "category": "data_centre",
+      "name": "Enterprise data centre",
+      "description": "A single company's server hall. Small, quiet and cheap, but adds little compute.",
+      "real_type": "Enterprise",
+      "cost": 400,
+      "footprint": [1, 1],
+      "compute_capacity": 10,
+      "electricity_usage": 3,
+      "water_usage": 1,
+      "revenue_per_month": 6,
+      "noise_radius": 1,
+      "terrain": ["open", "industrial", "town_centre"],
+      "color": "#7fd6c8"
+    },
+    {
+      "id": "colocation",
+      "category": "data_centre",
+      "name": "Colocation data centre",
+      "description": "Rents space to many clients. A solid step up in compute, water and noise.",
+      "real_type": "Retail Colocation",
+      "cost": 1400,
+      "footprint": [1, 1],
+      "compute_capacity": 35,
+      "electricity_usage": 10,
+      "water_usage": 4,
+      "revenue_per_month": 22,
+      "noise_radius": 2,
+      "terrain": ["open", "industrial", "town_centre"],
+      "color": "#58b8f0"
+    },
+    {
+      "id": "hyperscale",
+      "category": "data_centre",
+      "name": "Hyperscale campus",
+      "description": "A cloud giant's campus. Enormous compute and income, and enormous demands on the town.",
+      "real_type": "Hyperscale",
+      "cost": 4000,
+      "footprint": [2, 2],
+      "compute_capacity": 120,
+      "electricity_usage": 32,
+      "water_usage": 12,
+      "revenue_per_month": 80,
+      "noise_radius": 3,
+      "terrain": ["open", "industrial", "town_centre"],
+      "color": "#b48cff"
+    },
+    {
+      "id": "solar_farm",
+      "category": "infrastructure",
+      "name": "Solar farm",
+      "description": "Adds local renewable electricity capacity on open land.",
+      "cost": 900,
+      "footprint": [1, 1],
+      "electricity_supply": 10,
+      "terrain": ["open", "industrial"],
+      "color": "#4d7fd6"
+    },
+    {
+      "id": "offshore_wind",
+      "category": "infrastructure",
+      "name": "Offshore wind array",
+      "description": "Large renewable supply built out in Poole Bay. Expensive, but keeps land free.",
+      "cost": 3000,
+      "footprint": [1, 1],
+      "electricity_supply": 30,
+      "terrain": ["sea"],
+      "color": "#e8f1f2"
+    },
+    {
+      "id": "water_works",
+      "category": "infrastructure",
+      "name": "Water treatment works",
+      "description": "Expands the town's water supply.",
+      "cost": 900,
+      "footprint": [1, 1],
+      "water_supply": 10,
+      "terrain": ["open", "industrial"],
+      "color": "#5fb4c9"
+    }
+  ],
+  "upgrades": [
+    {
+      "id": "renewable",
+      "name": "Renewable power deal",
+      "survey_option": "Powered entirely by renewable (wind/solar) energy",
+      "cost_fraction": 0.35,
+      "grid_draw_multiplier": 0.5,
+      "summary": "Halves this centre's draw on the grid."
+    },
+    {
+      "id": "waste_heat",
+      "name": "Waste heat to homes",
+      "survey_option": "Redirected waste heat to warm local homes and businesses",
+      "cost_fraction": 0.25,
+      "summary": "Pipes server heat into nearby homes."
+    },
+    {
+      "id": "local_jobs",
+      "name": "Local jobs guarantee",
+      "survey_option": "Required to create a minimum number of local jobs",
+      "cost_fraction": 0.2,
+      "summary": "Commits to a minimum number of local hires."
+    },
+    {
+      "id": "community_fund",
+      "name": "Community fund",
+      "survey_option": "Required to fund local community projects or amenities",
+      "cost_fraction": 0.3,
+      "summary": "Funds local projects and amenities."
     }
   ]
 }

@@ -1,7 +1,122 @@
 {
-  "schema_version": 1,
-  "status": "not_imported",
-  "scope_wording": "Among the surveyed respondents…",
-  "note": "No supplied survey has been interpreted or imported. This sample must not be presented as representative of Ireland.",
-  "questions": []
+ "schema_version": 1,
+ "status": "imported",
+ "source": "Social Acceptance of Sustainable Data Centres in Ireland (Maynooth University), supplied as Survey.csv.xlsx",
+ "converted": "2026-09-23",
+ "sample_size": 200,
+ "population": "Adults resident in Ireland who answered an online survey; not a representative sample of Ireland or of Bournemouth.",
+ "scope_wording": "Among the surveyed respondents in Ireland…",
+ "questions": {
+  "attitude": {
+   "question": "Overall, what is your current attitude toward sustainable data centres in Ireland?",
+   "valid_n": 198,
+   "missing": 2,
+   "counts": {
+    "Strongly supportive": 47,
+    "Somewhat supportive": 63,
+    "Neutral": 36,
+    "Somewhat opposed": 31,
+    "Strongly opposed": 13,
+    "I don't have enough information to form a view": 8
+   }
+  },
+  "accept_within_5km": {
+   "question": "How acceptable would it be for a sustainable data centre to be built within 5 km of your home?",
+   "valid_n": 195,
+   "missing": 5,
+   "counts": {
+    "Completely acceptable": 18,
+    "Somewhat acceptable": 41,
+    "Neither acceptable nor unacceptable": 67,
+    "Somewhat unacceptable": 36,
+    "Completely unacceptable": 33
+   }
+  },
+  "belief_fossil_fuels": {
+   "question": "Please indicate whether you believe each of the following statements is true or false. [All data centres in Ireland run on fossil fuels]",
+   "valid_n": 195,
+   "missing": 5,
+   "counts": {
+    "True": 101,
+    "False": 56,
+    "Don't Know": 38
+   }
+  },
+  "belief_significant_share": {
+   "question": "Please indicate whether you believe each of the following statements is true or false. [Data centres are responsible for a significant proportion of Ireland's total electricity use]",
+   "valid_n": 189,
+   "missing": 11,
+   "counts": {
+    "True": 102,
+    "False": 53,
+    "Don't Know": 34
+   }
+  },
+  "belief_waste_heat": {
+   "question": "Please indicate whether you believe each of the following statements is true or false. [Data centres can redirect waste heat to nearby homes and businesses]",
+   "valid_n": 190,
+   "missing": 10,
+   "counts": {
+    "True": 101,
+    "False": 43,
+    "Don't Know": 46
+   }
+  },
+  "top3_conditions": {
+   "question": "Which three of the above conditions would most increase your personal acceptance of a sustainable data centre?",
+   "valid_n": 195,
+   "multiple_selections": 3,
+   "counts": {
+    "Powered entirely by renewable (wind/solar) energy": 95,
+    "Redirected waste heat to warm local homes and businesses": 106,
+    "Required to fund local community projects or amenities": 76,
+    "Required to create a minimum number of local jobs": 79,
+    "Subject to independent, publicly reported environmental monitoring": 48,
+    "Architecturally designed to complement the local landscape": 48,
+    "Operated with regular open days or public information sessions": 29,
+    "Supported local schools with STEM education programmes": 26,
+    "Provided a direct reduction in local energy tariffs or bills": 25,
+    "Established a Community Liaison Committee with local decision-making power": 14
+   }
+  },
+  "most_negative_areas": {
+   "question": "Overall, which two areas do you feel data centres most negatively impact in your community?",
+   "valid_n": 193,
+   "multiple_selections": 2,
+   "counts": {
+    "Natural environment": 76,
+    "People's health, skills and wellbeing (Human)": 108,
+    "Community identity and cohesion (Social)": 77,
+    "Land use and built infrastructure (Manufactured)": 85,
+    "Local economy and finances (Financial)": 24
+   }
+  },
+  "main_influence": {
+   "question": "What single factor most influences your view of data centres?",
+   "valid_n": 196,
+   "missing": 4,
+   "counts": {
+    "Energy use and sustainability": 40,
+    "Environmental impact": 39,
+    "Economic benefits for Ireland": 30,
+    "Job creation": 25,
+    "Impact on local communities": 23,
+    "Visual impact on the landscape": 19,
+    "Transparency and trust in operators": 15,
+    "Government regulation and oversight": 5
+   }
+  },
+  "gut_feeling": {
+   "question": "Which word or phrase best describes your instinctive, gut-level feeling about data centres?",
+   "valid_n": 195,
+   "missing": 5,
+   "counts": {
+    "Neutral / no strong feeling": 63,
+    "Somewhat positive": 48,
+    "Very positive": 39,
+    "Somewhat negative": 36,
+    "Very negative": 9
+   }
+  }
+ }
 }

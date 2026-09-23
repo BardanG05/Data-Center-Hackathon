@@ -1,80 +1,82 @@
-# Cairnbridge — Town & Compute
+# Bournemouth: Compute & Community
 
-A Godot 4 hackathon prototype about a fictional Irish town balancing digital infrastructure with electricity and water. **This is MVP 0.1: map, placement, one Data Centre and resource accounting.**
+A Godot 4 hackathon game: **Ireland's data-centre decade, replayed on Bournemouth.** From 2015 to 2034 the town's demand for compute grows along Ireland's real data-centre electricity curve (about 9.5× in total). You build data centres to meet it, but every centre needs electricity and water, annoys the homes in its noise radius, and costs public acceptance if it goes on greenfield land. Run out of money or lose the public and the game ends.
 
 ## Run
 
-The portable Windows Godot runtime in the parent `.tools/` folder is stored with [Git LFS](https://git-lfs.com/). After cloning, install Git LFS and run these commands from the repository folder to download the executables:
+The portable Godot runtime in `../.tools/` is stored with Git LFS. After cloning:
 
 ```powershell
 git lfs install
 git lfs pull
 ```
 
-Then double-click **`Play.cmd`** to play. It starts a fresh town each time. For development:
+Double-click **`Play.cmd`**. Alternatively, open `project.godot` in Godot 4.4+ and press F5.
 
-1. Open Godot **4.4 or newer**, standard/GDScript edition.
-2. Choose **Import**, select this folder's `project.godot`, then **Import & Edit**.
-3. Press **F5 / Run Project**.
-4. Click an empty buildable plot, then choose the Enterprise Data Centre in the building menu.
+## How to play
 
-The project uses the Compatibility renderer. No add-ons, external assets or online services are required.
+- Pick a building on the right, then click the map. Only tinted tiles can be built on: open land (green), industrial estates (blue), and shops and offices (orange).
+- Hovering shows the footprint, the noise radius, how many residents are within earshot and how many would object.
+- Click a data centre to buy upgrades (renewable deal, waste heat, local jobs, community fund) or to decommission it.
+- Scroll to zoom and right-drag to pan. Press Space or use the header buttons to pause or change speed.
+- News events pause the game: guess the answer, then see the data and the survey side by side.
+- At the end, answer "how do you feel about data centres now?" and compare yourself with the survey respondents.
 
-## What the first build does
+## Where the numbers come from
 
-The town starts with homes, businesses, a school, hospital, electricity and water infrastructure, roads and trees. It starts with **no Data Centre**.
+Every number in the UI is tagged **DATA** (a sourced measurement), **OPINION** (a survey response) or **ASSUMPTION** (game balance).
 
-| Resource | At launch | After one Data Centre |
-| --- | ---: | ---: |
-| Money | 1,200 | 400 |
-| Electricity usage / capacity | 42 / 90 | 70 / 90 |
-| Water usage / capacity | 18 / 50 | 32 / 50 |
-| Compute capacity / demand | 0 / 60 | 100 / 60 |
-| Population | 1,200 | 1,200 |
+| Game mechanic | Source | Type |
+| --- | --- | --- |
+| Compute demand growth 2015–2034 | CSO data-centre GWh 2015–2025, then SEAI forecast growth | DATA |
+| Town (non-DC) electricity growth | CSO other-customer GWh | DATA |
+| Starting acceptance 56% | 110 of 198 respondents strongly or somewhat supportive | OPINION |
+| 35% of residents within earshot object | 69 of 195 found a DC within 5 km unacceptable | OPINION |
+| Upgrade effects (54%, 49%, 41%, 39%) | Share naming each condition in their top 3 (n=195) | OPINION → ASSUMPTION |
+| Greenfield penalty | 85 of 193 named land use as a top-2 negative impact | OPINION → ASSUMPTION |
+| Data centres throttled first in a shortage | Beyond Fossil Fuels: only 4% prioritise data centres | OPINION |
+| Enterprise / colocation / hyperscale real-world figures | KPMG (2025) typical data-centre types | DATA |
+| Quiz reveals | CSO share, EirGrid renewables, survey beliefs | DATA + OPINION |
+| Costs, capacities, noise radii, penalty scales | Game balance | ASSUMPTION |
 
-All values are **fictional gameplay units**, not measured Irish statistics. Resource totals recalculate every simulation second. The initial compute deficit introduces the reason to build; it has no economic penalty yet. Electricity and water are ongoing loads, not stores that drain each second.
+All data describes **Ireland**, not Bournemouth. The survey is a 200-person sample of people in Ireland and is not representative of Ireland or Bournemouth. The game says "among surveyed respondents in Ireland" wherever it uses it.
 
-Construction is instant. The starting budget pays for one Data Centre, and there is no income yet. Restart the game to restore the town and budget. Saving, growth, construction timers, shortages' consequences, public acceptance, sustainability scoring, upgrades and events are later milestones.
+## Regenerating data
+
+- `../tools/data_import/import_data.py` converts `Survey.csv.xlsx` and `BCP Data.xlsx` into `data/survey.json` and `data/real_world_data.json`. It needs `pip install openpyxl`.
+- `../tools/map_build/` builds `data/map.json` and `assets/map/satellite.jpg`:
+  1. `curl` the Overpass query in `query.overpass` to `osm.json`.
+  2. Run `fetch_tiles.py`, then `stitch.py`, then `build_map.py`. These need `pip install pillow`.
+
+  The bounding box is set in `bbox.py`.
 
 ## Test
 
-With the Godot executable on your PATH, run these commands from this folder:
-
 ```powershell
-godot --headless --path . --editor --import
-godot --headless --path . --script res://tests/smoke_test.gd
+..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path . --editor --import
+..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://tests/smoke_test.gd
+..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://tests/balance.gd
 ```
 
-If the executable is named differently, substitute its name or use `& "C:\path\to\Godot.exe"` in PowerShell. From this folder, the downloaded console executable is `..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe`.
+- `smoke_test.gd` checks the imported figures, the placement rules, the upgrade maths, throttling, the event flow and a full game. Run it without `--headless` and add `-- --capture` to save screenshots to `test-output/`.
+- `balance.gd` plays three bot strategies. Currently doing nothing goes bankrupt in 2024, greedy hyperscale building gets voted out in 2024, and careful play finishes 2034 with 99% of demand met.
 
-Verified on Godot **4.7.2**: clean project import and **232 automated checks** passed, including viewport clicks, invalid/duplicate purchases, resource changes, scene reset and live ticks. A rendered run adds four screenshot checks. Screenshots are saved under `test-output/` by running the smoke test without `--headless` and appending `-- --capture`. Other Godot versions and web export have not been tested.
+## Files
 
-Manual checks:
+| File | Responsibility |
+| --- | --- |
+| `scripts/data_catalog.gd` | Loads the JSON files and derives survey rates and display facts |
+| `scripts/simulation_manager.gd` | Monthly model: demand, grid, water, throttling, acceptance, money, win/lose |
+| `scripts/building_manager.gd` | Placement validation, previews, building and decommissioning |
+| `scripts/town_map.gd` | Bournemouth grid, satellite underlay, noise overlay, pan and zoom |
+| `scripts/building.gd` | Top-down placeholder art |
+| `scripts/ui.gd` | HUD, build panel, upgrade panel, acceptance breakdown, event and end modals |
+| `scripts/game_manager.gd` | Wiring, event scheduling, scoring |
+| `data/*.json` | Buildings and upgrades, scenario balance, events, map, survey, real-world data |
 
-1. Confirm the initial resource values and the existing town, with no Data Centre.
-2. Select an empty plot; check that the menu describes its cost and resource effects.
-3. Build once; confirm the exact values in the table and a visible Data Centre.
-4. Click the occupied plot, roads, trees and outside the map; none should accept a new building.
-5. Try another empty plot with only 400 remaining; money and resource totals must stay unchanged.
-6. Wait several simulation ticks; totals must remain stable and the running simulation indicator should advance.
-7. Resize the window; check tile selection and readable UI. Menu clicks must not accidentally select the map beneath.
-8. Click **Restart town**; initial values and the original map must return. Stop and press F5 again to check a fresh launch too.
+## Attribution
 
-## Files to change
-
-- `scenes/`: main composition, map, reusable building and UI scenes.
-- `scripts/`: orchestration, JSON loading, simulation, placement, map, building visuals and UI.
-- `data/buildings.json`: Data Centre cost, loads, capacity and optional sprite.
-- `data/scenario.json`: initial town resources and tick interval.
-- `data/events.json`, `data/survey.json`, `data/real_world_data.json`: explicitly deferred, empty datasets.
-- `tests/smoke_test.gd`: repeatable checks of the first playable slice.
-- [Architecture and milestone plan](docs/architecture.md).
-- [Data contract and provenance guidance](docs/data-contract.md).
-
-To replace a building's drawn placeholder, add a transparent texture under `assets/buildings/` and set its `sprite_path` to a `res://` path in the building definition. Use a one-tile footprint with ground contact at the image's bottom centre; the building scene handles placement and scaling.
-
-The supplied Excel, Word and PowerPoint files remain untouched. Their contents have not been converted into game facts or survey effects in this milestone.
-
-For a future export, include `*.json` in the export preset's non-resource file filter so the gameplay data ships with the game. Web export also needs matching export templates and a served build; it is not part of this milestone.
-
-**Next: MVP 0.2** adds a short construction timer and simple money income. Completed buildings will contribute resources only when construction finishes. Resource shortages and their consequences follow in 0.3.
+- Map data © OpenStreetMap contributors (ODbL).
+- Imagery: Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data), CC BY-NC-SA 4.0.
+- Survey: Social Acceptance of Sustainable Data Centres in Ireland (Maynooth University).
+- Energy and economic data: CSO, SEAI, EirGrid, KPMG, Beyond Fossil Fuels, via the supplied `BCP Data.xlsx`.

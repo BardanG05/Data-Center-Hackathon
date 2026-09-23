@@ -1,6 +1,67 @@
 {
   "schema_version": 1,
-  "status": "deferred",
-  "note": "Reserved for later milestones. No events run in MVP 0.1.",
-  "events": []
+  "status": "active",
+  "note": "Placeholders in {braces} are filled from survey.json and real_world_data.json at runtime. [data], [opinion] and [assumption] mark the tag colour.",
+  "events": [
+    {
+      "id": "share_quiz",
+      "year": 2015,
+      "month": 1,
+      "kind": "quiz",
+      "kicker": "HEADLINE",
+      "title": "\"Data centres are eating Ireland's power\"",
+      "body": "Ireland is ten years ahead of Bournemouth on data centres. Guess first: by 2025, what share of Ireland's electricity did data centres use?",
+      "options": ["5%", "10%", "20%", "30%", "40%"],
+      "answer": 2,
+      "reveal": "[data]DATA[/data]  CSO: data centres used {share_2015}% of Ireland's metered electricity in 2015 and {share_2025}% in 2025 ({gwh_2025} GWh).\n\n[opinion]OPINION[/opinion]  {significant_true}% of surveyed respondents in Ireland believed data centres use a 'significant proportion' of the country's electricity.\n\nBournemouth's compute demand will now grow along Ireland's real curve, about {growth_2034}x by 2034. Meet it without losing the town."
+    },
+    {
+      "id": "fossil_quiz",
+      "year": 2017,
+      "month": 6,
+      "kind": "quiz",
+      "kicker": "HEADLINE",
+      "title": "\"Server farms run on coal and gas\"",
+      "body": "True or false: all data centres in Ireland run on fossil fuels.",
+      "options": ["True", "False", "Don't know"],
+      "answer": 1,
+      "reveal": "[opinion]OPINION[/opinion]  {fossil_true}% of surveyed respondents in Ireland answered True.\n\n[data]DATA[/data]  EirGrid: renewables met {renew_2015}% of Ireland's electricity demand in 2015 and {renew_2025}% in 2025. Grid-connected data centres draw that mix, so 'all fossil' is not supported, though most of the rest is still fossil.\n\nData is not opinion: many people believing something doesn't make it true."
+    },
+    {
+      "id": "conditions_quiz",
+      "year": 2020,
+      "month": 3,
+      "kind": "quiz",
+      "kicker": "TOWN HALL",
+      "title": "What would win your neighbours over?",
+      "body": "Survey respondents each picked the three conditions that would most raise their acceptance of a data centre. Which was picked most often?",
+      "options": ["Renewable power", "Waste heat to homes", "Local jobs", "Community fund"],
+      "answer": 1,
+      "reveal": "[opinion]OPINION[/opinion]  Top-3 picks among {top3_n} respondents: waste heat {pct_waste_heat}%, renewable power {pct_renewable}%, local jobs {pct_local_jobs}%, community fund {pct_community_fund}%.\n\n[assumption]ASSUMPTION[/assumption]  In this game each upgrade wins over that same share of a data centre's objectors. Click one of your data centres to buy upgrades."
+    },
+    {
+      "id": "renewable_rule",
+      "year": 2023,
+      "month": 1,
+      "kind": "policy",
+      "kicker": "POLICY",
+      "title": "Follow Ireland's new rule?",
+      "body": "Irish media report tighter rules: new data centres must supply more of their own renewable energy and ease the strain on the grid. Adopt the same rule for Bournemouth?",
+      "options": ["Adopt: new centres include a renewable deal (+25% cost)", "Keep the current rules"],
+      "effects": [{"flag": "renewable_rule"}, {"acceptance": -4}],
+      "reveal": "[data]SOURCE[/data]  Supplied media review of RTÉ and Irish Times coverage.\n\n[assumption]ASSUMPTION[/assumption]  Rejecting the rule costs 4 acceptance points in the local press; adopting it adds a renewable deal to every new centre."
+    },
+    {
+      "id": "shortage_quiz",
+      "year": 2027,
+      "month": 1,
+      "kind": "quiz",
+      "kicker": "WINTER PEAK",
+      "title": "Who gets the power first?",
+      "body": "When electricity runs short, which sector did the most people say should get power first?",
+      "options": ["Public healthcare", "Housing", "Agriculture / food", "Data centres"],
+      "answer": 0,
+      "reveal": "[opinion]OPINION[/opinion]  Beyond Fossil Fuels survey (2025), top priority: healthcare {prio_health}%, agriculture and food {prio_food}%, housing {prio_housing}%, data centres {prio_dc}%.\n\nIn this game, data centres are throttled first when the grid runs short. Throttled centres earn less and serve less demand."
+    }
+  ]
 }
