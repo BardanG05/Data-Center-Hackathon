@@ -40,6 +40,11 @@ var _noise: Dictionary = {}
 var _dragging := false
 var _drag_moved := false
 var _min_zoom := 0.3
+var _marker := NO_CELL
+var _marker_size := Vector2i.ONE
+## Terrain kinds allowed for the building being placed; others are dimmed.
+var _build_filter: Array = []
+var _time := 0.0
 
 
 func setup(map_data: Dictionary) -> void:
@@ -137,6 +142,31 @@ func set_noise(noise: Dictionary) -> void:
 	queue_redraw()
 
 
+## Gold ring the tutorial uses to point at a suggested site.
+func set_marker(cell: Vector2i, size: Vector2i) -> void:
+	_marker = cell
+	_marker_size = size
+	queue_redraw()
+
+
+func set_build_filter(allowed: Array) -> void:
+	_build_filter = allowed
+	queue_redraw()
+
+
+## Screen rectangle covered by a footprint, for highlighting.
+func cell_screen_rect(cell: Vector2i, size: Vector2i) -> Rect2:
+	if not in_bounds(cell):
+		return Rect2()
+	return Rect2(position + Vector2(cell) * CELL * scale.x, Vector2(size) * CELL * scale.x)
+
+
+func _process(delta: float) -> void:
+	if in_bounds(_marker):
+		_time += delta
+		queue_redraw()
+
+
 func cell_at_screen(screen_pos: Vector2) -> Vector2i:
 	var local := (get_global_transform_with_canvas().affine_inverse() * screen_pos) / CELL
 	return Vector2i(floori(local.x), floori(local.y))
@@ -213,7 +243,18 @@ func _draw() -> void:
 	for cell: Vector2i in _noise.keys():
 		var r := Rect2(Vector2(cell) * CELL, Vector2.ONE * CELL)
 		draw_rect(r, Color(1.0, 0.45, 0.15, 0.12 + 0.55 * float(_noise[cell])))
+	if not _build_filter.is_empty():
+		for y in range(grid_size.y):
+			for x in range(grid_size.x):
+				var c := Vector2i(x, y)
+				if occupancy.has(c) or not terrain_at(c) in _build_filter:
+					draw_rect(Rect2(Vector2(c) * CELL, Vector2.ONE * CELL), Color(0.02, 0.05, 0.06, 0.55))
 	_draw_labels()
+	if in_bounds(_marker):
+		var ring := Rect2(Vector2(_marker) * CELL, Vector2(_marker_size) * CELL)
+		var pulse := 0.5 + 0.5 * sin(_time * 5.0)
+		draw_rect(ring.grow(4.0 + pulse * 6.0), Color(1.0, 0.85, 0.3, 0.9 - pulse * 0.5), false, 4.0)
+		draw_circle(ring.get_center(), 7.0, Color("ffd84d"))
 	if _selected_uid >= 0 and _nodes.has(_selected_uid):
 		var node: Node2D = _nodes[_selected_uid]
 		var size: Vector2i = node.record["size"]

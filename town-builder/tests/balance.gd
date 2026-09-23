@@ -16,7 +16,7 @@ func _run() -> void:
 		await process_frame
 		var sim: SimulationManager = game.simulation
 		sim.set_process(false)
-		game.ui.hide_modal()
+		game.ui.event_option_chosen.emit(1)
 		var log := []
 		var guard := 0
 		while not sim.state["finished"] and guard < 300:

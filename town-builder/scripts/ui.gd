@@ -10,6 +10,8 @@ signal restart_requested
 signal event_option_chosen(index: int)
 signal event_closed
 signal attitude_chosen(option: String)
+signal coach_next
+signal coach_skip
 
 const INK := Color("0e1c20")
 const PANEL := Color("16292e")
@@ -20,28 +22,57 @@ const MUTED := Color("9fb8b1")
 const GREEN := Color("8fe3a4")
 const AMBER := Color("ffc970")
 const RED := Color("ff7b72")
+const GOLD := Color("ffd84d")
 const TAG_COLORS := {"data": "#2f6fd6", "opinion": "#8a4fd0", "assumption": "#5d6b70"}
-const MAP_RECT := Rect2(16, 164, 1062, 720)
+const SCREEN := Vector2(1440, 900)
+const ADVISOR_RECT := Rect2(16, 164, 1062, 38)
+const MAP_RECT := Rect2(16, 208, 1062, 672)
 const SIDE_X := 1094.0
 const SIDE_W := 330.0
+const STAT_KEYS := ["money", "electricity", "water", "compute", "acceptance", "share"]
+const STAT_NAMES := ["MONEY", "ELECTRICITY", "WATER", "COMPUTE", "PUBLIC ACCEPTANCE", "DATA CENTRES' SHARE"]
+const STAT_HELP := [
+	"Your budget. Every month you get town income plus data-centre revenue, minus the cost of importing any compute you don't produce yourself. Below −£3.0m the town is bankrupt.",
+	"Electricity used / grid supply. Homes always come first: if the grid is full, your data centres are throttled and earn less. Solar farms and offshore wind add supply.",
+	"Water used / supply. Data centres use water for cooling. Going over supply means a hosepipe ban, which angers residents. Water treatment works add supply.",
+	"Computing power produced in Bournemouth / what the town needs. Demand grows every year along Ireland's real curve. Any shortfall is imported, which costs money every month.",
+	"How much the public backs your plans. It starts at the share of surveyed people in Ireland who were supportive. It drifts towards the 'heading to' value. Below 25% the council stops you.",
+	"Share of the town's electricity used by data centres, compared with Ireland in the same year (CSO data).",
+]
+const BUILD_ORDER := ["enterprise", "colocation", "hyperscale", "solar_farm", "offshore_wind", "water_works"]
 
 var data: GameData
 var simulation: SimulationManager
 var _root: Control
 var _stats: Dictionary = {}
+var _stat_panels: Dictionary = {}
 var _date: Label
 var _speed_buttons: Dictionary = {}
 var _build_buttons: Dictionary = {}
+var _advisor: Label
+var _advisor_panel: Panel
 var _info: RichTextLabel
 var _actions: VBoxContainer
 var _breakdown: RichTextLabel
-var _toast: Label
+var _toast: PanelContainer
+var _toast_label: Label
+var _toast_time := 0.0
+var _hover: PanelContainer
+var _hover_label: Label
 var _modal: Control
 var _modal_kicker: Label
 var _modal_title: Label
 var _modal_body: RichTextLabel
 var _modal_options: VBoxContainer
 var _modal_continue: Button
+var _coach: PanelContainer
+var _coach_title: Label
+var _coach_body: RichTextLabel
+var _coach_next: Button
+var _coach_step: Label
+var _highlight: Panel
+var _coach_target: Callable
+var _time := 0.0
 var _state: Dictionary = {}
 var _armed := ""
 var _selected: Dictionary = {}
@@ -55,11 +86,14 @@ func _ready() -> void:
 	add_child(_root)
 	_build_header()
 	_build_stats()
+	_build_advisor()
 	_build_side()
-	_toast = _label("", Vector2(28, 842), Vector2(1030, 30), 15, GREEN)
 	_label("Map © OpenStreetMap contributors (ODbL) · Imagery: Sentinel-2 cloudless 2023 by EOX (CC BY-NC-SA 4.0) · Survey: Maynooth University · Energy data: CSO, SEAI, EirGrid, KPMG via BCP Data",
 		Vector2(16, 884), Vector2(1400, 16), 10, Color(MUTED, 0.7))
+	_build_toast()
+	_build_hover()
 	_build_modal()
+	_build_coach()
 
 
 func configure(game_data: GameData, sim: SimulationManager) -> void:
@@ -68,7 +102,21 @@ func configure(game_data: GameData, sim: SimulationManager) -> void:
 	for id: String in data.building_order:
 		var def: Dictionary = data.buildings[id]
 		_build_buttons[id].text = "%s\n%s" % [def["name"], GameData.money(float(def["cost"]))]
+		_build_buttons[id].tooltip_text = _building_summary(def)
 	_show_default()
+
+
+func _process(delta: float) -> void:
+	_time += delta
+	if _toast.visible:
+		_toast_time -= delta
+		if _toast_time <= 0.0:
+			_toast.hide()
+	if _hover.visible:
+		var pos := get_viewport().get_mouse_position() + Vector2(18, 20)
+		_hover.position = Vector2(minf(pos.x, SCREEN.x - _hover.size.x - 8), minf(pos.y, SCREEN.y - _hover.size.y - 8))
+	if _coach.visible:
+		_place_coach()
 
 
 # ------------------------------------------------------------------ layout
@@ -81,22 +129,25 @@ func _build_header() -> void:
 	_date.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	var x := 968.0
 	for entry: Array in [["Pause", 0.0], ["1×", 1.0], ["2×", 2.0], ["4×", 4.0]]:
-		var b := _button(entry[0], Vector2(x, 16), Vector2(64 if entry[1] == 0.0 else 48, 38), false)
+		var width := 64.0 if entry[1] == 0.0 else 48.0
+		var b := _button(entry[0], Vector2(x, 16), Vector2(width, 38), false)
+		b.tooltip_text = "Pause (Space)" if entry[1] == 0.0 else "Run at %s speed. One month takes %.1f seconds." % [entry[0], 1.5 / float(entry[1])]
 		var speed: float = entry[1]
 		b.pressed.connect(func() -> void: speed_requested.emit(speed))
 		_speed_buttons[speed] = b
-		x += (64 if entry[1] == 0.0 else 48) + 6
+		x += width + 6
 	var restart := _button("Restart", Vector2(1330, 16), Vector2(94, 38), false)
 	restart.pressed.connect(func() -> void: restart_requested.emit())
 
 
 func _build_stats() -> void:
-	var names := ["MONEY", "ELECTRICITY", "WATER", "COMPUTE", "PUBLIC ACCEPTANCE", "DATA CENTRES' SHARE"]
-	var keys := ["money", "electricity", "water", "compute", "acceptance", "share"]
-	for i in range(names.size()):
+	for i in range(STAT_KEYS.size()):
 		var x := 16.0 + i * 237.0
-		_panel(Vector2(x, 80), Vector2(229, 76), CARD)
-		_label(names[i], Vector2(x + 12, 86), Vector2(210, 16), 11, MUTED)
+		var card := _panel(Vector2(x, 80), Vector2(229, 76), CARD)
+		card.tooltip_text = STAT_HELP[i]
+		card.mouse_default_cursor_shape = Control.CURSOR_HELP
+		_stat_panels[STAT_KEYS[i]] = card
+		_label(STAT_NAMES[i] + "  ⓘ", Vector2(x + 12, 86), Vector2(210, 16), 11, MUTED)
 		var value := _label("—", Vector2(x + 12, 102), Vector2(210, 30), 23, TEXT)
 		var detail := _label("", Vector2(x + 12, 133), Vector2(210, 16), 11, MUTED)
 		var track := ColorRect.new()
@@ -110,37 +161,49 @@ func _build_stats() -> void:
 		bar.size = track.size
 		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_root.add_child(bar)
-		_stats[keys[i]] = {"value": value, "detail": detail, "bar": bar}
+		_stats[STAT_KEYS[i]] = {"value": value, "detail": detail, "bar": bar}
+
+
+func _build_advisor() -> void:
+	_advisor_panel = _panel(ADVISOR_RECT.position, ADVISOR_RECT.size, CARD)
+	_label("NEXT STEP", ADVISOR_RECT.position + Vector2(14, 11), Vector2(90, 18), 11, GOLD)
+	_advisor = _label("", ADVISOR_RECT.position + Vector2(100, 8), Vector2(ADVISOR_RECT.size.x - 112, 24), 15, TEXT)
 
 
 func _build_side() -> void:
-	_panel(Vector2(SIDE_X - 6, 164), Vector2(SIDE_W + 12, 720), PANEL)
+	_panel(Vector2(SIDE_X - 6, 164), Vector2(SIDE_W + 12, 716), PANEL)
 	_label("BUILD", Vector2(SIDE_X + 8, 172), Vector2(200, 18), 12, GREEN)
 	var i := 0
-	for id: String in ["enterprise", "colocation", "hyperscale", "solar_farm", "offshore_wind", "water_works"]:
-		var b := _button(id, Vector2(SIDE_X + (i % 2) * 166, 194 + (i / 2) * 56), Vector2(160, 50), false)
+	for id: String in BUILD_ORDER:
+		var b := _button(id, Vector2(SIDE_X + (i % 2) * 166, 194 + (i / 2) * 52), Vector2(160, 46), false)
 		b.add_theme_font_size_override("font_size", 12)
 		b.toggle_mode = true
 		var building_id := id
 		b.pressed.connect(func() -> void: build_selected.emit(building_id))
 		_build_buttons[id] = b
 		i += 1
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(SIDE_X, 352)
+	scroll.size = Vector2(SIDE_W, 392)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_root.add_child(scroll)
+	var box := VBoxContainer.new()
+	box.custom_minimum_size = Vector2(SIDE_W - 12, 0)
+	box.add_theme_constant_override("separation", 10)
+	scroll.add_child(box)
 	_info = RichTextLabel.new()
 	_info.bbcode_enabled = true
-	_info.fit_content = false
-	_info.scroll_active = true
-	_info.position = Vector2(SIDE_X + 4, 366)
-	_info.size = Vector2(SIDE_W - 8, 250)
+	_info.fit_content = true
+	_info.scroll_active = false
+	_info.custom_minimum_size = Vector2(SIDE_W - 14, 0)
 	_info.mouse_filter = Control.MOUSE_FILTER_PASS
 	_info.add_theme_font_size_override("normal_font_size", 13)
-	_info.add_theme_font_size_override("bold_font_size", 17)
+	_info.add_theme_font_size_override("bold_font_size", 16)
 	_info.add_theme_color_override("default_color", TEXT)
-	_root.add_child(_info)
+	box.add_child(_info)
 	_actions = VBoxContainer.new()
-	_actions.position = Vector2(SIDE_X + 4, 560)
-	_actions.size = Vector2(SIDE_W - 8, 160)
 	_actions.add_theme_constant_override("separation", 5)
-	_root.add_child(_actions)
+	box.add_child(_actions)
 	_panel(Vector2(SIDE_X, 752), Vector2(SIDE_W, 124), CARD)
 	_breakdown = RichTextLabel.new()
 	_breakdown.bbcode_enabled = true
@@ -151,6 +214,27 @@ func _build_side() -> void:
 	_breakdown.add_theme_font_size_override("bold_font_size", 13)
 	_breakdown.add_theme_color_override("default_color", TEXT)
 	_root.add_child(_breakdown)
+
+
+func _build_toast() -> void:
+	_toast = PanelContainer.new()
+	_toast.add_theme_stylebox_override("panel", _style(Color(INK, 0.92), 8, Color(GREEN, 0.4)))
+	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast.position = Vector2(MAP_RECT.position.x + 12, MAP_RECT.end.y - 50)
+	_toast_label = _label("", Vector2.ZERO, Vector2.ZERO, 15, GREEN, _toast)
+	_toast_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_root.add_child(_toast)
+	_toast.hide()
+
+
+func _build_hover() -> void:
+	_hover = PanelContainer.new()
+	_hover.add_theme_stylebox_override("panel", _style(Color(INK, 0.94), 6, Color(1, 1, 1, 0.18)))
+	_hover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hover_label = _label("", Vector2.ZERO, Vector2.ZERO, 13, TEXT, _hover)
+	_hover_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_root.add_child(_hover)
+	_hover.hide()
 
 
 func _build_modal() -> void:
@@ -187,6 +271,71 @@ func _build_modal() -> void:
 	_modal.hide()
 
 
+func _build_coach() -> void:
+	_highlight = Panel.new()
+	_highlight.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ring := StyleBoxFlat.new()
+	ring.bg_color = Color(GOLD, 0.08)
+	ring.set_border_width_all(4)
+	ring.border_color = GOLD
+	ring.set_corner_radius_all(10)
+	_highlight.add_theme_stylebox_override("panel", ring)
+	_root.add_child(_highlight)
+	_highlight.hide()
+	_coach = PanelContainer.new()
+	_coach.custom_minimum_size = Vector2(360, 0)
+	var style := _style(Color("fdf6e3"), 12, GOLD)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 14
+	style.content_margin_bottom = 14
+	_coach.add_theme_stylebox_override("panel", style)
+	_coach.mouse_filter = Control.MOUSE_FILTER_STOP
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	_coach.add_child(box)
+	_coach_step = Label.new()
+	_coach_step.add_theme_font_size_override("font_size", 11)
+	_coach_step.add_theme_color_override("font_color", Color("9a7b1c"))
+	box.add_child(_coach_step)
+	_coach_title = Label.new()
+	_coach_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_coach_title.add_theme_font_size_override("font_size", 20)
+	_coach_title.add_theme_color_override("font_color", INK)
+	box.add_child(_coach_title)
+	_coach_body = RichTextLabel.new()
+	_coach_body.bbcode_enabled = true
+	_coach_body.fit_content = true
+	_coach_body.scroll_active = false
+	_coach_body.custom_minimum_size = Vector2(324, 0)
+	_coach_body.add_theme_font_size_override("normal_font_size", 15)
+	_coach_body.add_theme_font_size_override("bold_font_size", 15)
+	_coach_body.add_theme_color_override("default_color", Color("1d2b2e"))
+	box.add_child(_coach_body)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	box.add_child(row)
+	var skip := Button.new()
+	skip.text = "Skip tutorial"
+	skip.flat = true
+	skip.add_theme_font_size_override("font_size", 13)
+	skip.add_theme_color_override("font_color", Color("6b7f84"))
+	skip.add_theme_color_override("font_hover_color", INK)
+	skip.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	skip.pressed.connect(func() -> void: coach_skip.emit())
+	row.add_child(skip)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	_coach_next = Button.new()
+	_coach_next.custom_minimum_size = Vector2(110, 36)
+	_style_button(_coach_next, true)
+	_coach_next.pressed.connect(func() -> void: coach_next.emit())
+	row.add_child(_coach_next)
+	_root.add_child(_coach)
+	_coach.hide()
+
+
 # ------------------------------------------------------------------ state
 
 func update_state(state: Dictionary) -> void:
@@ -196,7 +345,7 @@ func update_state(state: Dictionary) -> void:
 	var net := float(state["net_income"])
 	_set_stat("money", GameData.money(state["money"]), "%s%s / month" % ["+" if net >= 0 else "", GameData.money(net)], -1.0, GREEN if net >= 0 else RED)
 	var e_ratio := float(state["electricity_used"]) / maxf(float(state["electricity_supply"]), 0.001)
-	var e_detail := "Town %d · DCs %d" % [roundi(state["electricity_town"]), roundi(state["electricity_dc"])]
+	var e_detail := "Town %d · data centres %d" % [roundi(state["electricity_town"]), roundi(state["electricity_dc"])]
 	if state["blackout"]:
 		e_detail = "BLACKOUTS in homes"
 	elif float(state["dc_output"]) < 0.999:
@@ -204,7 +353,7 @@ func update_state(state: Dictionary) -> void:
 	_set_stat("electricity", "%d / %d" % [roundi(state["electricity_used"]), roundi(state["electricity_supply"])], e_detail, e_ratio,
 		RED if state["blackout"] else (AMBER if e_ratio > 0.97 else GREEN))
 	var w_ratio := float(state["water_used"]) / maxf(float(state["water_supply"]), 0.001)
-	_set_stat("water", "%d / %d" % [roundi(state["water_used"]), roundi(state["water_supply"])], "HOSEPIPE BAN" if state["water_shortage"] else "Use / supply",
+	_set_stat("water", "%d / %d" % [roundi(state["water_used"]), roundi(state["water_supply"])], "HOSEPIPE BAN" if state["water_shortage"] else "Used / supply",
 		w_ratio, RED if state["water_shortage"] else (AMBER if w_ratio > 0.9 else GREEN))
 	var met := minf(1.0, float(state["compute_local"]) / maxf(float(state["compute_demand"]), 0.001))
 	_set_stat("compute", "%d / %d" % [roundi(state["compute_local"]), roundi(state["compute_demand"])],
@@ -213,7 +362,7 @@ func update_state(state: Dictionary) -> void:
 	var target := float(state["acceptance_target"])
 	var arrow := "▲" if target > acc + 0.5 else ("▼" if target < acc - 0.5 else "■")
 	_set_stat("acceptance", "%d%%" % roundi(acc), "%s heading to %d%% · lose at %d%%" % [arrow, roundi(target), roundi(float(data.scenario["lose_acceptance"]))],
-		acc / 100.0, GREEN if acc >= 45.0 else (AMBER if acc >= 28.0 else RED))
+		acc / 100.0, GREEN if acc >= 45.0 else (AMBER if acc >= 35.0 else RED))
 	var ire := float(state["ireland_share"])
 	_set_stat("share", "%.1f%%" % (float(state["dc_share"]) * 100.0),
 		("Ireland %d: %.1f%%" % [int(state["year"]), ire * 100.0]) if ire >= 0.0 else "Ireland 2025: %s%%" % data.facts["share_2025"],
@@ -240,11 +389,18 @@ func _update_breakdown() -> void:
 	var lines := "[b]WHY ACCEPTANCE IS HEADING TO %d%%[/b]\n" % roundi(_state["acceptance_target"])
 	lines += "%s Start: %s%% of %s respondents supportive\n" % [_tag("opinion"), data.facts["support_pct"], data.facts["support_n"]]
 	lines += "[color=#ffc970]−%.1f[/color] objecting neighbours (%s people)\n" % [p.get("local", 0.0), GameData.thousands(_state.get("objectors", 0.0))]
-	lines += "[color=#ffc970]−%.1f[/color] data centres on greenfield land
-" % p.get("greenfield", 0.0)
+	lines += "[color=#ffc970]−%.1f[/color] data centres on greenfield land\n" % p.get("greenfield", 0.0)
 	var other := float(p.get("curtailment", 0.0)) + float(p.get("blackout", 0.0)) + float(p.get("water", 0.0)) + float(p.get("policy", 0.0))
 	lines += "[color=#ffc970]−%.1f[/color] blackouts, hosepipe bans, throttling, press" % other
 	_breakdown.text = lines
+
+
+## Advice for the "next step" bar. level: "info", "warn" or "bad".
+func set_advice(text: String, level: String) -> void:
+	_advisor.text = text
+	var color: Color = {"info": GREEN, "warn": AMBER, "bad": RED}.get(level, TEXT)
+	_advisor_panel.add_theme_stylebox_override("panel", _style(CARD, 10, Color(color, 0.7)))
+	_advisor.add_theme_color_override("font_color", TEXT if level == "info" else color)
 
 
 # ------------------------------------------------------------------ side panel
@@ -252,6 +408,7 @@ func _update_breakdown() -> void:
 func set_armed(building_id: String) -> void:
 	_armed = building_id
 	_selected = {}
+	_preview = {}
 	for id: String in _build_buttons:
 		_build_buttons[id].set_pressed_no_signal(id == building_id)
 	if building_id.is_empty():
@@ -279,35 +436,43 @@ func set_selected(record: Dictionary) -> void:
 
 func _show_default() -> void:
 	_clear_actions()
-	_info.text = "[b]Your job[/b]\nBournemouth's appetite for compute will grow along [b]Ireland's real curve[/b]: about %sx between 2015 and 2034. Build data centres to meet it, or pay to import compute.\n\nEvery centre needs electricity and water, and annoys the homes within its noise radius. Keep acceptance above %d%% and stay out of debt until 2034.\n\n[color=#9fb8b1]Pick a building above, then click the map. Only open land, industrial estates and shops/offices (tinted tiles) can be built on. Click a data centre to upgrade it. Scroll to zoom, right-drag to pan.[/color]\n\n%s %s %s" % [
-		data.facts["growth_2034"], roundi(float(data.scenario["lose_acceptance"])), _tag("data"), _tag("opinion"), _tag("assumption")]
+	var t := "[b]How to play[/b]\n"
+	t += "Demand for computing in Bournemouth will grow about [b]%sx[/b] by 2034, following Ireland's real curve. Meet it by building data centres, or pay every month to import it.\n\n" % data.facts["growth_2034"]
+	t += "[b]1.[/b] Pick a building above.\n[b]2.[/b] Click a bright tile on the map.\n[b]3.[/b] Click a data centre to buy upgrades that win neighbours over.\n\n"
+	t += "[b]Map key[/b]\n"
+	t += "[color=#b8ed73]■[/color] Open land: can build, but greenfield costs acceptance\n"
+	t += "[color=#b3c7f2]■[/color] Industrial estate: can build\n"
+	t += "[color=#ffc773]■[/color] Shops & offices: can build\n"
+	t += "[color=#6a9e70]■[/color] Heath & parks: protected\n"
+	t += "[color=#e8c9a4]■[/color] Homes: can't build, may object to noise\n"
+	t += "[color=#ff8a4d]■[/color] Orange wash: homes bothered by your data centres\n\n"
+	t += "[color=#9fb8b1]Scroll to zoom · right-drag to pan · right-click or Esc cancels · Space pauses[/color]\n\n"
+	t += "%s sourced figures  %s survey answers  %s game rules" % [_tag("data"), _tag("opinion"), _tag("assumption")]
+	_info.text = t
 
 
 func _show_armed() -> void:
 	_clear_actions()
 	var def: Dictionary = data.buildings[_armed]
-	var t := "[b]%s[/b]  [color=#ffc970]%s[/color]\n[color=#9fb8b1]%s[/color]\n" % [def["name"], GameData.money(float(_preview.get("cost", def["cost"]))), def["description"]]
+	var t := "[b]%s[/b]  [color=#ffc970]%s[/color]\n[color=#9fb8b1]%s[/color]\n" % [def["name"], GameData.money(float(_preview.get("cost", simulation.build_cost(_armed)))), def["description"]]
+	t += _building_summary(def) + "\n"
 	if def["category"] == "data_centre":
-		t += "+%d compute · %d electricity · %d water · +%s/month\nNoise radius: %d tiles (about %d m)\n" % [
-			def["compute_capacity"], def["electricity_usage"], def["water_usage"], GameData.money(def["revenue_per_month"]), def["noise_radius"], def["noise_radius"] * 275]
 		var ref: Dictionary = data.real["facts"]["typical_data_centre_types"]["by_type"].get(def.get("real_type", ""), {})
 		if not ref.is_empty():
-			t += "%s KPMG typical %s: %s GWh/yr, %s ML water/yr, %s sq ft\n" % [_tag("data"), String(def["real_type"]).to_lower(),
+			t += "%s A typical real %s (KPMG): %s GWh/yr, %s ML water/yr, %s sq ft\n" % [_tag("data"), String(def["real_type"]).to_lower(),
 				GameData.thousands(ref["energy_gwh_per_year"]), GameData.thousands(ref["water_megalitres_per_year"]), GameData.thousands(ref["building_sqft"])]
+	if _preview.is_empty():
+		t += "\n[color=#ffd84d]Move the mouse over the map. Bright tiles are where this can go.[/color]"
 	else:
-		if def.has("electricity_supply"):
-			t += "+%d electricity supply\n" % def["electricity_supply"]
-		if def.has("water_supply"):
-			t += "+%d water supply\n" % def["water_supply"]
-	if not _preview.is_empty():
 		if _preview.has("exposed"):
-			t += "\n[b]Here:[/b] %s residents within earshot, about [color=#ffc970]%s would object[/color]\n%s %s%% of %s respondents found a data centre within 5 km of home unacceptable\n" % [
+			t += "\n[b]On this tile[/b]\n%s residents within earshot, about [color=#ffc970]%s would object[/color]\n%s %s%% of %s respondents found a data centre within 5 km of home unacceptable\n" % [
 				GameData.thousands(_preview["exposed"]), GameData.thousands(_preview.get("new_objectors", 0.0)), _tag("opinion"), data.facts["objection_pct"], data.facts["objection_n"]]
 		if int(_preview.get("greenfield_tiles", 0)) > 0:
-			t += "[color=#ffc970]Greenfield site: −%.1f acceptance.[/color] %s %s%% of %s respondents named land use as a top-2 negative impact. Industrial and shop/office land avoids this.
-" % [
+			t += "[color=#ffc970]Greenfield site: −%.1f acceptance.[/color] %s %s%% of %s respondents named land use as a top-2 negative impact. Industrial and shop/office land avoids this.\n" % [
 				simulation.greenfield_penalty_per_tile() * int(_preview["greenfield_tiles"]), _tag("opinion"), data.facts["pct_land_use"], data.facts["land_use_n"]]
-		if not _preview["ok"]:
+		if _preview["ok"]:
+			t += "[color=#8fe3a4]Click to build here.[/color]"
+		else:
 			t += "[color=#ff7b72]%s[/color]" % _preview["problem"]
 	_info.text = t
 
@@ -317,18 +482,31 @@ func _show_selected() -> void:
 	var def: Dictionary = data.buildings[record["id"]]
 	var t := "[b]%s[/b]\n" % def["name"]
 	if def["category"] != "data_centre":
-		t += "[color=#9fb8b1]%s[/color]" % def["description"]
+		t += "[color=#9fb8b1]%s[/color]\n%s" % [def["description"], _building_summary(def)]
 		_info.text = t
 		_rebuild_actions(record, false)
 		return
-	var sim_state := _state
-	var output := float(sim_state.get("dc_output", 1.0))
+	var output := float(_state.get("dc_output", 1.0))
 	var ex: Dictionary = simulation.exposure_of(record)
-	t += "%d compute%s · %s/month\n" % [def["compute_capacity"], (" (throttled to %d%%)" % roundi(output * 100.0)) if output < 0.999 else "", GameData.money(float(def["revenue_per_month"]) * output)]
+	t += "%d compute%s · earns %s/month\n" % [def["compute_capacity"], (" (throttled to %d%%)" % roundi(output * 100.0)) if output < 0.999 else "", GameData.money(float(def["revenue_per_month"]) * output)]
 	t += "Neighbours objecting: [color=#ffc970]%s[/color] of %s within earshot\n" % [GameData.thousands(ex["objectors"]), GameData.thousands(ex["exposed"])]
-	t += "\n[b]Upgrades[/b]  %s share of respondents who picked it as a top-3 condition. %s Each wins over that share of objectors." % [_tag("opinion"), _tag("assumption")]
+	t += "\n[b]Upgrades[/b]\nEach upgrade wins over a share of this centre's objectors. The %% is how many survey respondents picked that condition in their top 3. %s %s" % [_tag("opinion"), _tag("assumption")]
 	_info.text = t
 	_rebuild_actions(record, true)
+
+
+func _building_summary(def: Dictionary) -> String:
+	if def["category"] == "data_centre":
+		return "+%d compute · uses %d electricity and %d water · earns %s/month · noise reaches %d tile%s (about %d m)" % [
+			def["compute_capacity"], def["electricity_usage"], def["water_usage"], GameData.money(def["revenue_per_month"]),
+			def["noise_radius"], "" if int(def["noise_radius"]) == 1 else "s", int(def["noise_radius"]) * 265]
+	var parts: Array[String] = []
+	if def.has("electricity_supply"):
+		parts.append("+%d electricity supply" % def["electricity_supply"])
+	if def.has("water_supply"):
+		parts.append("+%d water supply" % def["water_supply"])
+	parts.append("builds on " + ("the sea" if "sea" in def["terrain"] else "open or industrial land"))
+	return " · ".join(parts)
 
 
 func _rebuild_actions(record: Dictionary, upgrades: bool) -> void:
@@ -340,13 +518,12 @@ func _rebuild_actions(record: Dictionary, upgrades: bool) -> void:
 		return
 	_clear_actions()
 	_actions.set_meta("key", key)
-	var sim := simulation
 	if upgrades:
 		for upgrade_id: String in data.upgrade_order:
 			var up: Dictionary = data.upgrades[upgrade_id]
 			var owned: bool = upgrade_id in record["upgrades"]
-			var cost := sim.upgrade_cost(record, upgrade_id)
-			var label := "✓ %s" % up["name"] if owned else "%s · %s · %s%%" % [up["name"], GameData.money(cost), data.facts["pct_" + upgrade_id]]
+			var cost := simulation.upgrade_cost(record, upgrade_id)
+			var label := "✓ %s" % up["name"] if owned else "%s · %s · wins %s%%" % [up["name"], GameData.money(cost), data.facts["pct_" + upgrade_id]]
 			var b := _action_button(label)
 			b.tooltip_text = up["summary"]
 			b.disabled = owned or float(_state.get("money", 0)) < cost
@@ -364,7 +541,7 @@ func _rebuild_actions(record: Dictionary, upgrades: bool) -> void:
 func _action_button(text: String) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(SIDE_W - 8, 30)
+	b.custom_minimum_size = Vector2(SIDE_W - 14, 32)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.add_theme_font_size_override("font_size", 12)
 	_style_button(b, false)
@@ -375,12 +552,26 @@ func _action_button(text: String) -> Button:
 func _clear_actions() -> void:
 	_actions.set_meta("key", "")
 	for child in _actions.get_children():
+		_actions.remove_child(child)
 		child.queue_free()
 
 
 func show_message(message: String, is_error: bool = false) -> void:
-	_toast.text = message
-	_toast.add_theme_color_override("font_color", RED if is_error else GREEN)
+	_toast_label.text = message
+	_toast_label.add_theme_color_override("font_color", RED if is_error else GREEN)
+	_toast.reset_size()
+	_toast.show()
+	_toast_time = 4.0
+
+
+## Small label that follows the mouse over the map.
+func show_hover(text: String) -> void:
+	if text.is_empty():
+		_hover.hide()
+		return
+	_hover_label.text = text
+	_hover.reset_size()
+	_hover.show()
 
 
 func set_speed(speed: float) -> void:
@@ -388,10 +579,82 @@ func set_speed(speed: float) -> void:
 		_style_button(_speed_buttons[s], is_equal_approx(s, speed))
 
 
+# ------------------------------------------------------------------ screen rects for the tutorial
+
+func stat_rect(key: String) -> Rect2:
+	return _stat_panels[key].get_global_rect()
+
+
+func build_button_rect(id: String) -> Rect2:
+	return _build_buttons[id].get_global_rect()
+
+
+func actions_rect() -> Rect2:
+	return _actions.get_global_rect() if _actions.get_child_count() > 0 else Rect2(SIDE_X, 352, SIDE_W, 392)
+
+
+func speed_rect() -> Rect2:
+	var first: Rect2 = _speed_buttons[0.0].get_global_rect()
+	return first.merge(_speed_buttons[4.0].get_global_rect())
+
+
+# ------------------------------------------------------------------ tutorial coach
+
+## Shows a tutorial card beside `target` (a Callable returning a screen Rect2).
+func show_coach(step_label: String, title: String, text: String, button: String, target: Callable) -> void:
+	_coach_step.text = step_label
+	_coach_title.text = title
+	_coach_body.text = text
+	_coach_next.text = button
+	_coach_next.visible = not button.is_empty()
+	_coach_target = target
+	_coach.reset_size()
+	_coach.show()
+	_highlight.show()
+	_place_coach()
+
+
+func hide_coach() -> void:
+	_coach.hide()
+	_highlight.hide()
+
+
+func is_coaching() -> bool:
+	return _coach.visible
+
+
+func _place_coach() -> void:
+	var target: Rect2 = _coach_target.call() if _coach_target.is_valid() else Rect2()
+	_highlight.visible = target.size != Vector2.ZERO
+	_highlight.position = target.position - Vector2(6, 6)
+	_highlight.size = target.size + Vector2(12, 12)
+	_highlight.modulate.a = 0.6 + 0.4 * sin(_time * 5.0)
+	var size := _coach.get_combined_minimum_size()
+	_coach.size = size
+	var gap := 18.0
+	var candidates := [
+		Vector2(target.position.x, target.end.y + gap),
+		Vector2(target.end.x + gap, target.position.y),
+		Vector2(target.position.x - size.x - gap, target.position.y),
+		Vector2(target.position.x, target.position.y - size.y - gap),
+	]
+	var screen := Rect2(Vector2(8, 8), SCREEN - Vector2(16, 16))
+	var chosen := (SCREEN - size) * 0.5
+	if target.size.x < 700.0:
+		for c: Vector2 in candidates:
+			var clamped := Vector2(clampf(c.x, 8, SCREEN.x - size.x - 8), clampf(c.y, 8, SCREEN.y - size.y - 8))
+			var rect := Rect2(clamped, size)
+			if screen.encloses(rect) and not rect.intersects(target.grow(4)):
+				chosen = clamped
+				break
+	_coach.position = chosen
+
+
 # ------------------------------------------------------------------ modal
 
 func show_event(event: Dictionary) -> void:
 	_modal.show()
+	_hover.hide()
 	_modal_kicker.text = String(event.get("kicker", "NEWS"))
 	_modal_title.text = String(event["title"])
 	_modal_body.text = _fill(String(event["body"]))
@@ -415,6 +678,8 @@ func reveal_event(event: Dictionary, chosen: int) -> void:
 
 func show_end(state: Dictionary, summary: Dictionary) -> void:
 	_modal.show()
+	_hover.hide()
+	hide_coach()
 	var outcome: String = state["outcome"]
 	_modal_kicker.text = "GAME OVER" if outcome != "completed" else "2034 · FINAL REPORT"
 	_modal_title.text = {"lost_acceptance": "The town turned against you", "lost_money": "Bournemouth ran out of money",
@@ -459,13 +724,14 @@ func is_modal_open() -> bool:
 
 func _set_options(options: Array, attitude: bool = false) -> void:
 	for child in _modal_options.get_children():
+		_modal_options.remove_child(child)
 		child.queue_free()
 	for i in range(options.size()):
 		var b := Button.new()
 		b.text = options[i]
 		b.custom_minimum_size = Vector2(760, 38 if attitude else 42)
 		b.add_theme_font_size_override("font_size", 16)
-		_style_button(b, false)
+		_style_button(b, i == 0 and options.size() == 2 and not attitude)
 		var index := i
 		var text: String = options[i]
 		if attitude:

@@ -15,6 +15,14 @@ Double-click **`Play.cmd`**. Alternatively, open `project.godot` in Godot 4.4+ a
 
 ## How to play
 
+New players get a welcome screen and an optional 2-minute tutorial. Time stays paused throughout the tutorial, which walks them through the following:
+1. Reading the map.
+2. Building a first data centre at a suggested quiet site.
+3. Seeing its impact.
+4. Buying an upgrade.
+
+After that, the **Next step** bar above the map always shows the most useful action, turning amber or red when something needs attention. Hover a stat card for an explanation, or a map tile to see what it is and whether you can build there.
+
 - Pick a building on the right, then click the map. Only tinted tiles can be built on: open land (green), industrial estates (blue), and shops and offices (orange).
 - Hovering shows the footprint, the noise radius, how many residents are within earshot and how many would object.
 - Click a data centre to buy upgrades (renewable deal, waste heat, local jobs, community fund) or to decommission it.

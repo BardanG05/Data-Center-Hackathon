@@ -36,9 +36,12 @@ func _run() -> void:
 
 	# Start state
 	_check(sim.state["year"] == 2015 and sim.state["month"] == 1, "Game starts January 2015")
-	_check(game.ui.is_modal_open() and sim.paused, "Opening quiz is shown and pauses time")
+	_check(game.ui.is_modal_open() and sim.paused and game.active_event.get("id") == "welcome", "Welcome screen shown first with time paused")
 	_check(map.grid_size == Vector2i(48, 30), "Bournemouth grid is 48 × 30")
 	_check(map.home_cells().size() > 500, "Map has residential homes")
+	await _screenshot("00-welcome")
+	game.ui.event_option_chosen.emit(1)
+	_check(game.ui.is_modal_open() and game.active_event.get("id") == "share_quiz", "Skipping the tutorial opens the first quiz")
 	await _screenshot("01-intro-quiz")
 	game.ui.event_option_chosen.emit(2)
 	await process_frame
@@ -114,10 +117,62 @@ func _run() -> void:
 	_check(sim.state["finished"], "Game reaches an outcome (%s)" % sim.state["outcome"])
 	_check(game.fired_events.size() == data.events.size() or sim.state["outcome"] != "completed", "Every event fired in a full game")
 	await _screenshot("04-end")
+	game.queue_free()
+	await process_frame
+	await _tutorial_test()
 	print("%d checks, %d failures" % [checks, failures.size()])
 	for f in failures:
 		print("FAIL: " + f)
 	quit(1 if failures.size() > 0 else 0)
+
+
+## Walks the whole tutorial the way a player would.
+func _tutorial_test() -> void:
+	game = load("res://scenes/main.tscn").instantiate()
+	root.add_child(game)
+	await process_frame
+	var sim: SimulationManager = game.simulation
+	sim.set_process(false)
+	var t: Tutorial = game.tutorial
+	game.ui.event_option_chosen.emit(0)
+	_check(t.active and game.ui.is_coaching() and sim.paused, "Tutorial starts with time paused")
+	await _screenshot("07-tutorial-map")
+	game.ui.coach_next.emit()
+	await _screenshot("08-tutorial-compute")
+	game.ui.coach_next.emit()
+	_check(t.step == 2, "Tutorial reaches the build step")
+	game.ui.coach_next.emit()
+	_check(t.step == 2, "Action steps ignore Next")
+	game._on_build_selected("colocation")
+	_check(t.step == 3 and game.town_map.in_bounds(t.suggested_cell), "Arming colocation shows a suggested site")
+	game._on_cell_hovered(t.suggested_cell)
+	await _screenshot("09-tutorial-place")
+	game._cancel()
+	_check(t.step == 2, "Cancelling placement steps back")
+	game._on_build_selected("colocation")
+	game._on_cell_clicked(t.suggested_cell)
+	_check(t.step == 4 and sim.placed.size() == 1, "Building at the suggested site advances")
+	_check(game.armed.is_empty(), "Placement mode ends after building")
+	await _screenshot("10-tutorial-impact")
+	game.ui.coach_next.emit()
+	game._on_cell_clicked(t.suggested_cell)
+	_check(t.step == 6, "Selecting the new centre advances")
+	await _screenshot("11-tutorial-upgrade")
+	game.ui.upgrade_requested.emit(t.built_uid, "waste_heat")
+	_check(t.step == 7, "Buying an upgrade advances")
+	await _screenshot("12-tutorial-advisor")
+	game.ui.coach_next.emit()
+	await _screenshot("13-tutorial-time")
+	game.ui.coach_next.emit()
+	_check(not t.active and not game.ui.is_coaching(), "Tutorial finishes")
+	_check(game.ui.is_modal_open() and game.active_event.get("id") == "share_quiz", "First quiz follows the tutorial")
+	game.ui.event_option_chosen.emit(2)
+	game.ui.event_closed.emit()
+	_check(not sim.paused, "Time runs after the tutorial and quiz")
+	var tip: Array = game.advice(sim.state)
+	_check(not String(tip[0]).is_empty(), "Advisor always has a suggestion")
+	game.queue_free()
+	await process_frame
 
 
 func _find(kind: String) -> Vector2i:

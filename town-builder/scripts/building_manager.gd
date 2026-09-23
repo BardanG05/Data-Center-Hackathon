@@ -37,6 +37,25 @@ func preview(cell: Vector2i, building_id: String) -> Dictionary:
 	return result
 
 
+## Lowest acceptance-cost valid site for a building, or NO_CELL.
+func suggest_site(building_id: String) -> Vector2i:
+	var best := TownMap.NO_CELL
+	var best_cost := INF
+	var s: Dictionary = _data.scenario
+	for y in range(_map.grid_size.y):
+		for x in range(_map.grid_size.x):
+			var cell := Vector2i(x, y)
+			var p := preview(cell, building_id)
+			if not p["ok"]:
+				continue
+			var cost := float(s["acceptance_amplifier"]) * float(p.get("new_objectors", 0.0)) / float(s["residents"]) * 100.0
+			cost += int(p["greenfield_tiles"]) * _simulation.greenfield_penalty_per_tile()
+			if cost < best_cost - 0.001:
+				best_cost = cost
+				best = cell
+	return best
+
+
 func try_build(cell: Vector2i, building_id: String) -> Dictionary:
 	if not _data.buildings.has(building_id):
 		return {"ok": false, "message": "That building is not available."}
