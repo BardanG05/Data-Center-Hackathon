@@ -1,6 +1,6 @@
 extends SceneTree
 ## Run after import: godot --headless --path . --script res://tests/smoke_test.gd
-## Add -- --capture in a rendered run to save screenshots of the tested UI.
+## Add -- --capture in a rendered run to save screenshots to test-output/.
 
 var failures: Array[String] = []
 var checks: int = 0
@@ -17,120 +17,197 @@ func _run() -> void:
 	game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	await process_frame
-	game.simulation.set_process(false)
 	var sim: SimulationManager = game.simulation
 	var map: TownMap = game.town_map
-	var initial: Dictionary = sim.state.duplicate(true)
-	var definition: Dictionary = game.data.buildings["data_centre"]
-	_check(not initial.is_empty(), "JSON loaded and game initialized")
-	_check(sim.placed_buildings.is_empty() and initial["compute_capacity"] == 0, "Town starts without a data centre")
-	_check(not map.occupancy.is_empty(), "Existing town buildings occupy land")
-	await _screenshot("01-town")
-	var free_cells: Array[Vector2i] = []
-	for x in range(map.grid_size.x):
-		for y in range(map.grid_size.y):
-			var cell := Vector2i(x, y)
-			var point := map.cell_to_world(cell)
-			_check(map.world_to_cell(point) == cell, "Tile %s round trip" % cell)
-			_check(map.world_to_cell(point + Vector2(20, 0)) == cell, "Diamond interior %s" % cell)
-			if map.is_buildable(cell):
-				free_cells.append(cell)
-	_check(free_cells.size() >= 2, "At least two free plots are available")
-	for cell in [Vector2i(-1, 0), Vector2i(10, 10), Vector2i(4, 5), Vector2i(9, 9)]:
-		var rejected: Dictionary = game.building_manager.try_build(cell, "data_centre")
-		_check(not rejected["ok"], "Invalid land rejected: %s" % cell)
-	_check(sim.state == initial, "Invalid land leaves all simulation state unchanged")
-	var unknown: Dictionary = game.building_manager.try_build(free_cells[0], "unknown")
-	_check(not unknown["ok"], "Unknown building rejected")
-	# Exercise actual viewport input and UI signals, rather than bypassing the menu.
-	await _click(map.cell_to_world(free_cells[0]))
-	_check(game.selected_cell == free_cells[0], "Clicking grass selects the correct tile")
-	_check(game.ui.build_button.is_visible_in_tree(), "Grass click opens the build menu")
-	await _screenshot("02-build-menu")
-	await _click(game.ui.cancel_button.get_global_rect().get_center())
-	_check(game.selected_cell == Vector2i(-1, -1), "Cancel button clears selection")
-	_check(sim.state == initial, "Cancel costs nothing")
-	await _click(map.cell_to_world(free_cells[0]))
-	await _click(game.ui.build_button.get_global_rect().get_center())
-	_check(sim.placed_buildings.size() == 1, "Build button places exactly one data centre")
-	_check(not map.is_buildable(free_cells[0]), "New building occupies its tile")
-	_check(sim.state["money"] == initial["money"] - definition["cost"], "Cost deducted exactly once")
-	_check(sim.state["electricity_used"] == initial["electricity_used"] + definition["electricity_usage"], "Electricity increases by JSON usage")
-	_check(sim.state["water_used"] == initial["water_used"] + definition["water_usage"], "Water increases by JSON usage")
-	_check(sim.state["compute_capacity"] == initial["compute_capacity"] + definition["compute_capacity"], "Compute increases by JSON capacity")
-	await _screenshot("03-data-centre-online")
-	var after_build: Dictionary = sim.state.duplicate(true)
-	var duplicate: Dictionary = game.building_manager.try_build(free_cells[0], "data_centre")
-	_check(not duplicate["ok"] and sim.state == after_build, "Duplicate placement cannot charge twice")
-	var occupied_count: int = map.occupancy.size()
-	var poor: Dictionary = game.building_manager.try_build(free_cells[1], "data_centre")
-	_check(not poor["ok"] and sim.state == after_build, "Insufficient funds leaves state unchanged")
-	_check(map.occupancy.size() == occupied_count and map.is_buildable(free_cells[1]), "Failed purchase does not occupy a tile")
-	await _click(map.cell_to_world(free_cells[1]))
-	_check(game.ui.build_button.disabled, "Unaffordable build button is disabled")
-	await _screenshot("04-insufficient-funds")
-	game._cancel_selection()
-	var ticks_before: int = sim.state["tick_count"]
-	sim.advance(0.4)
-	_check(sim.state["tick_count"] == ticks_before, "Partial second does not update simulation")
-	sim.advance(0.7)
-	_check(sim.state["tick_count"] == ticks_before + 1, "Accumulated time triggers a fixed tick")
-	sim.advance(3.0)
-	_check(sim.state["tick_count"] == ticks_before + 4, "Slow frames preserve every simulation tick")
-	_check(sim.state["electricity_used"] == after_build["electricity_used"] and sim.state["water_used"] == after_build["water_used"], "Repeated ticks do not accumulate resource usage")
-	_check(sim.state["money"] == after_build["money"], "Ticks do not repeatedly charge the build cost")
-	# Verify the live process loop, not just manual advance.
-	sim.set_process(true)
-	await create_timer(1.15).timeout
+	var data: GameData = game.data
 	sim.set_process(false)
-	_check(sim.state["tick_count"] >= ticks_before + 5, "Live simulation advances without player input")
-	var reset_scene: PackedScene = load("res://scenes/main.tscn")
-	root.remove_child(game)
-	game.free()
-	game = reset_scene.instantiate()
-	root.add_child(game)
+
+	# Data import and derived facts
+	_check(data.error_message.is_empty(), "All JSON loaded: " + data.error_message)
+	_check(data.facts["share_2025"] == "23.2", "CSO 2025 data-centre share is 23.2%% (got %s)" % data.facts["share_2025"])
+	_check(data.facts["share_2015"] == "5.0", "CSO 2015 share is 5.0%")
+	_check(absf(data.rates["support"] - 110.0 / 198.0) < 0.001, "Starting support = 110/198 supportive respondents")
+	_check(absf(data.rates["objection_near"] - 69.0 / 195.0) < 0.001, "Objection = 69/195 find a DC within 5 km unacceptable")
+	_check(absf(data.rates["upgrade_waste_heat"] - 106.0 / 195.0) < 0.001, "Waste heat top-3 share = 106/195")
+	_check(is_equal_approx(data.demand_index(2015), 1.0) and data.demand_index(2025) > 6.0, "Demand index follows CSO curve")
+	for event: Dictionary in data.events:
+		var text: String = game.ui._fill(String(event.get("reveal", "")) + String(event["body"]))
+		_check(not "{" in text, "Event '%s' has every placeholder filled" % event["id"])
+
+	# Start state
+	_check(sim.state["year"] == 2015 and sim.state["month"] == 1, "Game starts January 2015")
+	_check(game.ui.is_modal_open() and sim.paused and game.active_event.get("id") == "welcome", "Welcome screen shown first with time paused")
+	_check(map.grid_size == Vector2i(48, 30), "Bournemouth grid is 48 × 30")
+	_check(map.home_cells().size() > 500, "Map has residential homes")
+	await _screenshot("00-welcome")
+	game.ui.event_option_chosen.emit(1)
+	_check(game.ui.is_modal_open() and game.active_event.get("id") == "share_quiz", "Skipping the tutorial opens the first quiz")
+	await _screenshot("01-intro-quiz")
+	game.ui.event_option_chosen.emit(2)
 	await process_frame
-	game.simulation.set_process(false)
-	_check(game.simulation.state["money"] == initial["money"] and game.simulation.placed_buildings.is_empty(), "Fresh scene resets funds and buildings")
-	_check(game.town_map.is_buildable(free_cells[0]), "Fresh scene resets occupancy")
-	if failures.is_empty():
-		print("PASS: %d MVP checks, including viewport clicks and live ticks." % checks)
-	else:
-		for failure in failures:
-			printerr("FAIL: " + failure)
-		printerr("%d failures from %d checks." % [failures.size(), checks])
+	await _screenshot("02-quiz-reveal")
+	game.ui.event_closed.emit()
+	_check(not game.ui.is_modal_open() and not sim.paused, "Closing the quiz resumes time")
+	sim.paused = true
+
+	# Placement rules
+	var sea := _find("sea")
+	var home := _find("residential")
+	var open := _find_isolated_open()
+	_check(open != TownMap.NO_CELL, "An open plot exists")
+	var money: float = sim.state["money"]
+	_check(not game.building_manager.try_build(sea, "enterprise")["ok"], "Cannot build a data centre in the sea")
+	_check(not game.building_manager.try_build(home, "enterprise")["ok"], "Cannot build on homes")
+	sim.state["money"] = 10000.0
+	_check(game.building_manager.try_build(sea, "offshore_wind")["ok"], "Offshore wind goes in the sea")
+	_check(is_equal_approx(sim.state["electricity_supply"], 130.0), "Offshore wind adds 30 supply")
+	money = sim.state["money"]
+	var result: Dictionary = game.building_manager.try_build(open, "colocation")
+	_check(result["ok"], "Colocation builds on open land")
+	_check(is_equal_approx(sim.state["money"], money - 1400.0), "Cost deducted once")
+	_check(is_equal_approx(sim.state["compute_capacity"], 35.0), "Compute capacity added")
+	_check(not game.building_manager.try_build(open, "enterprise")["ok"], "Occupied plot rejected")
+	var record: Dictionary = result["record"]
+	var before: float = sim.exposure_of(record)["objectors"]
+	if before > 0.0:
+		money = sim.state["money"]
+		_check(sim.buy_upgrade(record["uid"], "waste_heat")["ok"], "Waste-heat upgrade purchased")
+		var after: float = sim.exposure_of(record)["objectors"]
+		_check(absf(after / before - (1.0 - data.rates["upgrade_waste_heat"])) < 0.001, "Upgrade wins over the survey share of objectors")
+		_check(not sim.buy_upgrade(record["uid"], "waste_heat")["ok"], "Duplicate upgrade rejected")
+
+	# Placement preview and selection panels
+	game._on_build_selected("hyperscale")
+	var hover := _find_isolated_open()
+	game._on_cell_hovered(hover)
+	_check(game.ui._info.text.contains("residents within earshot"), "Preview shows affected residents")
+	await _screenshot("05-preview")
+	game._cancel()
+	game._select(record["uid"])
+	_check(game.ui._actions.get_child_count() == 5, "Data centre panel lists 4 upgrades + decommission")
+	await _screenshot("06-selected")
+	game._select(-1)
+
+	# Time and resources
+	for i in range(12):
+		sim.step_month()
+	_check(sim.state["year"] == 2016 and sim.state["month"] == 1, "Twelve months advance one year")
+	_check(sim.state["compute_demand"] > 10.0, "Compute demand grows")
+	sim.state["money"] = 100000.0
+	for i in range(6):
+		var cell := _find_isolated_open()
+		if cell != TownMap.NO_CELL:
+			game.building_manager.try_build(cell, "colocation")
+	sim._recalculate()
+	_check(sim.state["dc_output"] < 1.0, "Overbuilding throttles data centres (output %.2f)" % sim.state["dc_output"])
+	_check(not sim.state["blackout"], "Throttling protects homes from blackouts")
+	game.ui.update_state(sim.state)
+	await _screenshot("03-town")
+
+	# Run to the end
+	sim.state["money"] = 100000.0
+	var guard := 0
+	while not sim.state["finished"] and guard < 400:
+		sim.step_month()
+		guard += 1
+		if game.ui.is_modal_open() and not sim.state["finished"]:
+			game.ui.event_option_chosen.emit(0)
+			game.ui.event_closed.emit()
+			sim.paused = true
+	_check(sim.state["finished"], "Game reaches an outcome (%s)" % sim.state["outcome"])
+	_check(game.fired_events.size() == data.events.size() or sim.state["outcome"] != "completed", "Every event fired in a full game")
+	await _screenshot("04-end")
 	game.queue_free()
 	await process_frame
-	quit(0 if failures.is_empty() else 1)
+	await _tutorial_test()
+	print("%d checks, %d failures" % [checks, failures.size()])
+	for f in failures:
+		print("FAIL: " + f)
+	quit(1 if failures.size() > 0 else 0)
 
 
-func _check(condition: bool, message: String) -> void:
+## Walks the whole tutorial the way a player would.
+func _tutorial_test() -> void:
+	game = load("res://scenes/main.tscn").instantiate()
+	root.add_child(game)
+	await process_frame
+	var sim: SimulationManager = game.simulation
+	sim.set_process(false)
+	var t: Tutorial = game.tutorial
+	game.ui.event_option_chosen.emit(0)
+	_check(t.active and game.ui.is_coaching() and sim.paused, "Tutorial starts with time paused")
+	await _screenshot("07-tutorial-map")
+	game.ui.coach_next.emit()
+	await _screenshot("08-tutorial-compute")
+	game.ui.coach_next.emit()
+	_check(t.step == 2, "Tutorial reaches the build step")
+	game.ui.coach_next.emit()
+	_check(t.step == 2, "Action steps ignore Next")
+	game._on_build_selected("colocation")
+	_check(t.step == 3 and game.town_map.in_bounds(t.suggested_cell), "Arming colocation shows a suggested site")
+	game._on_cell_hovered(t.suggested_cell)
+	await _screenshot("09-tutorial-place")
+	game._cancel()
+	_check(t.step == 2, "Cancelling placement steps back")
+	game._on_build_selected("colocation")
+	game._on_cell_clicked(t.suggested_cell)
+	_check(t.step == 4 and sim.placed.size() == 1, "Building at the suggested site advances")
+	_check(game.armed.is_empty(), "Placement mode ends after building")
+	await _screenshot("10-tutorial-impact")
+	game.ui.coach_next.emit()
+	game._on_cell_clicked(t.suggested_cell)
+	_check(t.step == 6, "Selecting the new centre advances")
+	await _screenshot("11-tutorial-upgrade")
+	game.ui.upgrade_requested.emit(t.built_uid, "waste_heat")
+	_check(t.step == 7, "Buying an upgrade advances")
+	await _screenshot("12-tutorial-advisor")
+	game.ui.coach_next.emit()
+	await _screenshot("13-tutorial-time")
+	game.ui.coach_next.emit()
+	_check(not t.active and not game.ui.is_coaching(), "Tutorial finishes")
+	_check(game.ui.is_modal_open() and game.active_event.get("id") == "share_quiz", "First quiz follows the tutorial")
+	game.ui.event_option_chosen.emit(2)
+	game.ui.event_closed.emit()
+	_check(not sim.paused, "Time runs after the tutorial and quiz")
+	var tip: Array = game.advice(sim.state)
+	_check(not String(tip[0]).is_empty(), "Advisor always has a suggestion")
+	game.queue_free()
+	await process_frame
+
+
+func _find(kind: String) -> Vector2i:
+	var map: TownMap = game.town_map
+	for y in range(map.grid_size.y):
+		for x in range(map.grid_size.x):
+			var c := Vector2i(x, y)
+			if map.terrain_at(c) == kind and not map.occupancy.has(c):
+				return c
+	return TownMap.NO_CELL
+
+
+## An unoccupied open/industrial cell that touches homes, so noise matters.
+func _find_isolated_open() -> Vector2i:
+	var map: TownMap = game.town_map
+	for y in range(map.grid_size.y):
+		for x in range(map.grid_size.x):
+			var c := Vector2i(x, y)
+			if map.terrain_at(c) in ["open", "industrial"] and not map.occupancy.has(c):
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(2, 0), Vector2i(0, 2)]:
+					if map.terrain_at(c + d) == "residential":
+						return c
+	return TownMap.NO_CELL
+
+
+func _check(condition: bool, label: String) -> void:
 	checks += 1
 	if not condition:
-		failures.append(message)
+		failures.append(label)
 
 
-func _click(point: Vector2) -> void:
-	var motion := InputEventMouseMotion.new()
-	motion.position = point
-	root.push_input(motion, true)
-	var button := InputEventMouseButton.new()
-	button.position = point
-	button.button_index = MOUSE_BUTTON_LEFT
-	button.pressed = true
-	root.push_input(button, true)
-	await process_frame
-	button = button.duplicate()
-	button.pressed = false
-	root.push_input(button, true)
-	await process_frame
-
-
-func _screenshot(filename: String) -> void:
+func _screenshot(name: String) -> void:
 	if not capture:
 		return
 	await process_frame
-	await RenderingServer.frame_post_draw
-	DirAccess.make_dir_recursive_absolute("res://test-output")
-	var result := root.get_texture().get_image().save_png("res://test-output/%s.png" % filename)
-	_check(result == OK, "Screenshot saved: " + filename)
+	await process_frame
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://test-output"))
+	root.get_texture().get_image().save_png("res://test-output/%s.png" % name)

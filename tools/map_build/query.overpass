@@ -1,0 +1,15 @@
+[out:json][timeout:120];
+(
+  way["natural"="coastline"](50.66,-2.00,50.79,-1.72);
+  way["landuse"](50.695,-1.97,50.765,-1.75);
+  relation["landuse"](50.695,-1.97,50.765,-1.75);
+  way["leisure"~"park|golf_course|nature_reserve|recreation_ground|pitch"](50.695,-1.97,50.765,-1.75);
+  relation["leisure"~"park|golf_course|nature_reserve"](50.695,-1.97,50.765,-1.75);
+  way["natural"~"water|heath|wood|scrub|beach|wetland|grassland|sand"](50.695,-1.97,50.765,-1.75);
+  relation["natural"~"water|heath|wood|scrub|wetland"](50.695,-1.97,50.765,-1.75);
+  way["amenity"~"hospital|university|school"](50.695,-1.97,50.765,-1.75);
+  way["highway"~"motorway|trunk|primary"](50.695,-1.97,50.765,-1.75);
+  way["aeroway"](50.695,-1.97,50.765,-1.75);
+  node["place"~"suburb|town|city|neighbourhood"](50.695,-1.97,50.765,-1.75);
+);
+out geom;

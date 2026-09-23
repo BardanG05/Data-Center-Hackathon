@@ -1,6 +1,195 @@
 {
-  "schema_version": 1,
-  "status": "not_imported",
-  "note": "No real-world measurements have been imported. Do not substitute fictional building balance values for facts.",
-  "facts": []
+ "schema_version": 1,
+ "status": "imported",
+ "converted": "2026-09-23",
+ "geography": "Republic of Ireland (national). None of these values describe Bournemouth.",
+ "facts": {
+  "cso_electricity_gwh": {
+   "source": "CSO data centre electricity consumption, via BCP Data.xlsx",
+   "unit": "GWh/year",
+   "by_year": {
+    "2015": {
+     "data_centres": 1240,
+     "other_customers": 23360,
+     "total": 24600
+    },
+    "2016": {
+     "data_centres": 1482,
+     "other_customers": 23874,
+     "total": 25356
+    },
+    "2017": {
+     "data_centres": 1762,
+     "other_customers": 23963,
+     "total": 25725
+    },
+    "2018": {
+     "data_centres": 2182,
+     "other_customers": 24548,
+     "total": 26730
+    },
+    "2019": {
+     "data_centres": 2490,
+     "other_customers": 24015,
+     "total": 26505
+    },
+    "2020": {
+     "data_centres": 3030,
+     "other_customers": 24025,
+     "total": 27056
+    },
+    "2021": {
+     "data_centres": 4012,
+     "other_customers": 24493,
+     "total": 28506
+    },
+    "2022": {
+     "data_centres": 5273,
+     "other_customers": 24551,
+     "total": 29824
+    },
+    "2023": {
+     "data_centres": 6339,
+     "other_customers": 24242,
+     "total": 30581
+    },
+    "2024": {
+     "data_centres": 6973,
+     "other_customers": 24930,
+     "total": 31903
+    },
+    "2025": {
+     "data_centres": 7663,
+     "other_customers": 25324,
+     "total": 32986
+    }
+   }
+  },
+  "seai_dc_forecast_gwh": {
+   "source": "SEAI data centre demand forecast, via BCP Data.xlsx",
+   "unit": "GWh/year",
+   "by_year": {
+    "2021": 4292.399999927999,
+    "2022": 5264.760000206,
+    "2023": 6456.119999435999,
+    "2024": 7779.459999627999,
+    "2025": 9102.799999819998,
+    "2026": 10069.6399997,
+    "2027": 10827.71999931,
+    "2028": 11544.133333991,
+    "2029": 12183.840000003,
+    "2030": 12832.30666695,
+    "2031": 13344.880000755,
+    "2032": 13739.080000962,
+    "2033": 13889.080000754,
+    "2034": 14039.080000546
+   }
+  },
+  "renewable_share_of_demand": {
+   "source": "EirGrid RES KPI, via BCP Data.xlsx",
+   "unit": "fraction",
+   "by_year": {
+    "2014": 0.22862760085069977,
+    "2015": 0.27319009691183466,
+    "2016": 0.2545839020452499,
+    "2017": 0.29610199315896707,
+    "2018": 0.3304374280737185,
+    "2019": 0.3761702973598085,
+    "2020": 0.4229680528546537,
+    "2021": 0.34996418665987816,
+    "2022": 0.38604432632823915,
+    "2023": 0.40685852244805426,
+    "2024": 0.3968364971082028,
+    "2025": 0.4073996818225813
+   }
+  },
+  "typical_data_centre_types": {
+   "source": "KPMG report p.87 (2025), via BCP Data.xlsx",
+   "by_type": {
+    "Enterprise": {
+     "energy_gwh_per_year": 70,
+     "building_sqft": 7500,
+     "water_megalitres_per_year": 8,
+     "co2_tonnes_per_year": 20800
+    },
+    "Retail Colocation": {
+     "energy_gwh_per_year": 418,
+     "building_sqft": 26400,
+     "water_megalitres_per_year": 49,
+     "co2_tonnes_per_year": 124500
+    },
+    "Small-scale Wholesale Colocation": {
+     "energy_gwh_per_year": 349,
+     "building_sqft": 85600,
+     "water_megalitres_per_year": 41,
+     "co2_tonnes_per_year": 104000
+    },
+    "Hyperscale": {
+     "energy_gwh_per_year": 6133,
+     "building_sqft": 305200,
+     "water_megalitres_per_year": 713,
+     "co2_tonnes_per_year": 1800000
+    }
+   }
+  },
+  "energy_shortage_priority": {
+   "source": "Beyond Fossil Fuels survey slide 47 (2025), via BCP Data.xlsx",
+   "question": "In the event of an energy shortage, which sectors should be prioritised?",
+   "unit": "share naming it top priority",
+   "by_sector": {
+    "Public healthcare services": 0.39,
+    "Agriculture / Food supply": 0.16,
+    "Housing / Residential": 0.12,
+    "National defence": 0.07,
+    "General building infrastructure (e.g. heating and air conditioning)": 0.05,
+    "Public educational and research institutions": 0.03,
+    "Transport": 0.03,
+    "Manufacturing": 0.03,
+    "Data centres": 0.04
+   }
+  }
+ },
+ "derived": {
+  "dc_demand_index": {
+   "method": "CSO data-centre GWh ÷ CSO 2015 value for 2015–2025; later years apply SEAI forecast year-on-year growth to the CSO 2025 value.",
+   "by_year": {
+    "2015": 1.0,
+    "2016": 1.1952,
+    "2017": 1.421,
+    "2018": 1.7597,
+    "2019": 2.0081,
+    "2020": 2.4435,
+    "2021": 3.2355,
+    "2022": 4.2524,
+    "2023": 5.1121,
+    "2024": 5.6234,
+    "2025": 6.1798,
+    "2026": 6.8362,
+    "2027": 7.3509,
+    "2028": 7.8372,
+    "2029": 8.2715,
+    "2030": 8.7118,
+    "2031": 9.0598,
+    "2032": 9.3274,
+    "2033": 9.4292,
+    "2034": 9.5311
+   }
+  },
+  "other_demand_index": {
+   "method": "CSO other-customer GWh ÷ CSO 2015 value.",
+   "by_year": {
+    "2015": 1.0,
+    "2016": 1.022,
+    "2017": 1.0258,
+    "2018": 1.0509,
+    "2019": 1.028,
+    "2020": 1.0285,
+    "2021": 1.0485,
+    "2022": 1.051,
+    "2023": 1.0378,
+    "2024": 1.0672,
+    "2025": 1.0841
+   }
+  }
+ }
 }
