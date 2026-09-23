@@ -105,7 +105,7 @@ func configure(game_data: GameData, sim: SimulationManager) -> void:
 	simulation = sim
 	for id: String in data.building_order:
 		var def: Dictionary = data.buildings[id]
-		_build_buttons[id].text = "%s\n%s" % [def["name"], GameData.money(float(def["cost"]))]
+		_build_buttons[id].text = "%s\nsite price varies" % def["name"]
 		_build_buttons[id].tooltip_text = _building_summary(def)
 	_show_default()
 
@@ -458,7 +458,10 @@ func _show_default() -> void:
 func _show_armed() -> void:
 	_clear_actions()
 	var def: Dictionary = data.buildings[_armed]
-	var t := "[b]%s[/b]  [color=#ffc970]%s[/color]\n[color=#9fb8b1]%s[/color]\n" % [def["name"], GameData.money(float(_preview.get("cost", simulation.build_cost(_armed)))), def["description"]]
+	var price_text := "site price on hover"
+	if not _preview.is_empty():
+		price_text = GameData.money(float(_preview.get("cost", simulation.build_cost(_armed))))
+	var t := "[b]%s[/b]  [color=#ffc970]%s[/color]\n[color=#9fb8b1]%s[/color]\n" % [def["name"], price_text, def["description"]]
 	t += _building_summary(def) + "\n"
 	if def["category"] == "data_centre":
 		var ref: Dictionary = data.real["facts"]["typical_data_centre_types"]["by_type"].get(def.get("real_type", ""), {})
@@ -468,6 +471,16 @@ func _show_armed() -> void:
 	if _preview.is_empty():
 		t += "\n[color=#ffd84d]Move the mouse over the map. Bright tiles are where this can go.[/color]"
 	else:
+		var site_type := String(_preview.get("site_type", "mixed site"))
+		var site_name := String(TownMap.TERRAIN_NAMES.get(site_type, site_type.capitalize()))
+		var site_multiplier := float(_preview.get("site_multiplier", 1.0))
+		t += "\n[b]This site[/b] %s · build cost [color=#ffc970]%s[/color]\n" % [site_name, GameData.money(float(_preview.get("cost", simulation.build_cost(_armed))))]
+		t += "Site price is %d%% of this building's baseline." % roundi(site_multiplier * 100.0)
+		if site_multiplier < 0.999:
+			t += " Lower-cost land."
+		elif site_multiplier > 1.001:
+			t += " Higher-cost town-centre land."
+		t += "\n"
 		if _preview.has("exposed"):
 			t += "\n[b]On this tile[/b]\n%s residents within earshot, about [color=#ffc970]%s would object[/color]\n%s %s%% of %s respondents found a data centre within 5 km of home unacceptable\n" % [
 				GameData.thousands(_preview["exposed"]), GameData.thousands(_preview.get("new_objectors", 0.0)), _tag("opinion"), data.facts["objection_pct"], data.facts["objection_n"]]

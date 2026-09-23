@@ -216,7 +216,9 @@ func _on_cell_hovered(cell: Vector2i) -> void:
 	ui.set_preview(preview)
 	var text: String = preview["problem"]
 	if preview["ok"]:
-		text = "Click to build · %s" % GameData.money(preview["cost"])
+		var site_type := String(preview.get("site_type", "mixed site"))
+		var site_name := String(TownMap.TERRAIN_NAMES.get(site_type, site_type.capitalize()))
+		text = "Click to build · %s · %s" % [GameData.money(preview["cost"]), site_name]
 		if preview.has("new_objectors"):
 			text += " · about %s would object" % GameData.thousands(preview["new_objectors"])
 		if int(preview.get("greenfield_tiles", 0)) > 0:

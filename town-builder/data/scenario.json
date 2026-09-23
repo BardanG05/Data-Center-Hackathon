@@ -17,6 +17,13 @@
   "other_demand_growth_after_data": 0.008,
   "residents": 400000,
   "residents_note": "Roughly the population of Bournemouth, Christchurch and Poole, spread evenly over residential tiles.",
+  "site_cost_multipliers": {
+    "open": 0.75,
+    "industrial": 1.0,
+    "town_centre": 1.35,
+    "sea": 1.0
+  },
+  "site_cost_note": "Game assumptions: open land is cheaper to acquire, industrial land is the baseline and town-centre land costs more. These are not Bournemouth land-price measurements.",
   "acceptance_amplifier": 10,
   "acceptance_response": 0.2,
   "greenfield_penalty_per_tile": 8,

@@ -24,6 +24,7 @@ New players get a welcome screen and an optional 2-minute tutorial. Time stays p
 After that, the **Next step** bar above the map always shows the most useful action, turning amber or red when something needs attention. Hover a stat card for an explanation, or a map tile to see what it is and whether you can build there.
 
 - Pick a building on the right, then click the map. Only tinted tiles can be built on: open land (green), industrial estates (blue), and shops and offices (orange).
+- Construction cost depends on the site: open land is cheaper but costs acceptance as greenfield, industrial land is the baseline, and shops and offices cost more. Hover a tile to see the final price.
 - Hovering shows the footprint, the noise radius, how many residents are within earshot and how many would object.
 - Click a data centre to buy upgrades (renewable deal, waste heat, local jobs, community fund) or to decommission it.
 - Scroll to zoom and right-drag to pan. Press Space or use the header buttons to pause or change speed.
@@ -44,6 +45,7 @@ Every number in the UI is tagged **DATA** (a sourced measurement), **OPINION** (
 | 35% of residents within earshot object | 69 of 195 found a DC within 5 km unacceptable | OPINION |
 | Upgrade effects (54%, 49%, 41%, 39%) | Share naming each condition in their top 3 (n=195) | OPINION → ASSUMPTION |
 | Greenfield penalty | 85 of 193 named land use as a top-2 negative impact | OPINION → ASSUMPTION |
+| Site cost multipliers | Open land 0.75×, industrial 1.0×, shops/offices 1.35× | ASSUMPTION |
 | Data centres throttled first in a shortage | Beyond Fossil Fuels: only 4% prioritise data centres | OPINION |
 | Enterprise / colocation / hyperscale real-world figures | KPMG (2025) typical data-centre types | DATA |
 | Quiz reveals | Supplied question bank: survey results, resource use, AI, company reports and terminology | DATA + OPINION |

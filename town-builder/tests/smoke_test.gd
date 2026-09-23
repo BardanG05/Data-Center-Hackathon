@@ -51,23 +51,34 @@ func _run() -> void:
 	await _screenshot("02-quiz-reveal")
 	game.ui.event_closed.emit()
 	_check(not game.ui.is_modal_open() and not sim.paused, "Closing the quiz resumes time")
+	_check(game.ui._build_buttons["colocation"].text.contains("site price varies"), "Build buttons leave site price for the map hover")
 	sim.paused = true
 
 	# Placement rules
 	var sea := _find("sea")
 	var home := _find("residential")
 	var open := _find_isolated_open()
+	var industrial := _find("industrial")
+	var town_centre := _find("town_centre")
 	_check(open != TownMap.NO_CELL, "An open plot exists")
+	_check(industrial != TownMap.NO_CELL and town_centre != TownMap.NO_CELL, "Priced buildable site types exist")
 	var money: float = sim.state["money"]
 	_check(not game.building_manager.try_build(sea, "enterprise")["ok"], "Cannot build a data centre in the sea")
 	_check(not game.building_manager.try_build(home, "enterprise")["ok"], "Cannot build on homes")
 	sim.state["money"] = 10000.0
 	_check(game.building_manager.try_build(sea, "offshore_wind")["ok"], "Offshore wind goes in the sea")
 	_check(is_equal_approx(sim.state["electricity_supply"], 130.0), "Offshore wind adds 30 supply")
+	var open_preview: Dictionary = game.building_manager.preview(open, "colocation")
+	var industrial_preview: Dictionary = game.building_manager.preview(industrial, "colocation")
+	var centre_preview: Dictionary = game.building_manager.preview(town_centre, "colocation")
+	_check(is_equal_approx(open_preview["site_multiplier"], 0.75) and is_equal_approx(open_preview["cost"], 1050.0), "Open land is 75% of the baseline construction cost")
+	_check(is_equal_approx(industrial_preview["site_multiplier"], 1.0) and is_equal_approx(industrial_preview["cost"], 1400.0), "Industrial land is the baseline construction cost")
+	_check(is_equal_approx(centre_preview["site_multiplier"], 1.35) and is_equal_approx(centre_preview["cost"], 1890.0), "Town-centre land costs 135% of the baseline")
+	_check(int(open_preview["greenfield_tiles"]) == 1 and int(industrial_preview["greenfield_tiles"]) == 0, "Only open land carries the greenfield acceptance penalty")
 	money = sim.state["money"]
 	var result: Dictionary = game.building_manager.try_build(open, "colocation")
 	_check(result["ok"], "Colocation builds on open land")
-	_check(is_equal_approx(sim.state["money"], money - 1400.0), "Cost deducted once")
+	_check(is_equal_approx(sim.state["money"], money - open_preview["cost"]), "Site-specific cost deducted once")
 	_check(is_equal_approx(sim.state["compute_capacity"], 35.0), "Compute capacity added")
 	_check(not game.building_manager.try_build(open, "enterprise")["ok"], "Occupied plot rejected")
 	var record: Dictionary = result["record"]
@@ -84,6 +95,7 @@ func _run() -> void:
 	var hover := _find_isolated_open()
 	game._on_cell_hovered(hover)
 	_check(game.ui._info.text.contains("residents within earshot"), "Preview shows affected residents")
+	_check(game.ui._info.text.contains("build cost"), "Preview shows the final site-specific build cost")
 	await _screenshot("05-preview")
 	game._cancel()
 	game._select(record["uid"])

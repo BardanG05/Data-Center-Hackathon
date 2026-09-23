@@ -23,10 +23,11 @@ func preview(cell: Vector2i, building_id: String) -> Dictionary:
 	var def: Dictionary = _data.buildings[building_id]
 	var size := footprint(building_id)
 	var problem := _map.placement_problem(cell, size, def["terrain"])
-	var cost := _simulation.build_cost(building_id)
+	var site_multiplier := _site_cost_multiplier(cell, size)
+	var cost := _simulation.build_cost(building_id, site_multiplier)
 	if problem.is_empty() and not _simulation.can_afford(cost):
 		problem = "Not enough money (costs %s)." % GameData.money(cost)
-	var result := {"cell": cell, "size": size, "radius": int(def.get("noise_radius", 0)), "ok": problem.is_empty(), "problem": problem, "cost": cost}
+	var result := {"cell": cell, "size": size, "radius": int(def.get("noise_radius", 0)), "ok": problem.is_empty(), "problem": problem, "cost": cost, "site_multiplier": site_multiplier, "site_type": _site_type(cell, size)}
 	result["greenfield_tiles"] = _greenfield_tiles(cell, size) if def["category"] == "data_centre" else 0
 	if def["category"] == "data_centre" and _map.in_bounds(cell):
 		var hypothetical := {"id": building_id, "cell": cell, "size": size, "upgrades": ["renewable"] if _simulation.has_flag("renewable_rule") else []}
@@ -35,6 +36,33 @@ func preview(cell: Vector2i, building_id: String) -> Dictionary:
 		result["new_objectors"] = float(after["objectors"]) - before
 		result["exposed"] = _simulation.exposure_of(hypothetical)["exposed"]
 	return result
+
+
+func _site_cost_multiplier(cell: Vector2i, size: Vector2i) -> float:
+	var multipliers: Dictionary = _data.scenario.get("site_cost_multipliers", {})
+	var total := 0.0
+	var count := 0
+	for dy in range(size.y):
+		for dx in range(size.x):
+			var c := cell + Vector2i(dx, dy)
+			if not _map.in_bounds(c):
+				continue
+			var kind := _map.terrain_at(c)
+			total += float(multipliers.get(kind, 1.0))
+			count += 1
+	return total / float(count) if count > 0 else 1.0
+
+
+func _site_type(cell: Vector2i, size: Vector2i) -> String:
+	var kinds: Dictionary = {}
+	for dy in range(size.y):
+		for dx in range(size.x):
+			var c := cell + Vector2i(dx, dy)
+			if _map.in_bounds(c):
+				kinds[_map.terrain_at(c)] = true
+	if kinds.size() == 1:
+		return String(kinds.keys()[0])
+	return "mixed site"
 
 
 ## Lowest acceptance-cost valid site for a building, or NO_CELL.
@@ -62,7 +90,7 @@ func try_build(cell: Vector2i, building_id: String) -> Dictionary:
 	var check := preview(cell, building_id)
 	if not check["ok"]:
 		return {"ok": false, "message": check["problem"]}
-	var record := _simulation.add_building(building_id, cell, check["greenfield_tiles"])
+	var record := _simulation.add_building(building_id, cell, check["greenfield_tiles"], check["site_multiplier"])
 	_map.place(record, _data.buildings[building_id])
 	var def: Dictionary = _data.buildings[building_id]
 	var message := "%s built." % def["name"]

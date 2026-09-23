@@ -98,24 +98,26 @@ func can_afford(cost: float) -> bool:
 	return not state.is_empty() and cost >= 0.0 and float(state["money"]) >= cost
 
 
-## Build cost after policies (the renewable rule bundles a renewable deal).
-func build_cost(id: String) -> float:
+## Build cost after policies and an optional site multiplier.
+## With no site multiplier this returns the building's baseline cost.
+func build_cost(id: String, site_multiplier: float = 1.0) -> float:
 	var def: Dictionary = _data.buildings[id]
-	var cost := float(def["cost"])
+	var cost := float(def["cost"]) * maxf(site_multiplier, 0.0)
 	if def["category"] == "data_centre" and has_flag("renewable_rule"):
 		cost *= 1.25
 	return cost
 
 
 ## greenfield_tiles: footprint tiles on open land, which cost acceptance for data centres.
-func add_building(id: String, cell: Vector2i, greenfield_tiles: int = 0) -> Dictionary:
+func add_building(id: String, cell: Vector2i, greenfield_tiles: int = 0, site_multiplier: float = 1.0) -> Dictionary:
 	var def: Dictionary = _data.buildings[id]
 	var size := Vector2i(int(def["footprint"][0]), int(def["footprint"][1]))
-	var record := {"uid": _next_uid, "id": id, "cell": cell, "size": size, "upgrades": [], "greenfield_tiles": greenfield_tiles}
+	var final_cost := build_cost(id, site_multiplier)
+	var record := {"uid": _next_uid, "id": id, "cell": cell, "size": size, "upgrades": [], "greenfield_tiles": greenfield_tiles, "site_multiplier": site_multiplier, "build_cost": final_cost}
 	if def["category"] == "data_centre" and has_flag("renewable_rule"):
 		record["upgrades"].append("renewable")
 	_next_uid += 1
-	state["money"] -= build_cost(id)
+	state["money"] -= final_cost
 	placed.append(record)
 	_recalculate()
 	_emit()
