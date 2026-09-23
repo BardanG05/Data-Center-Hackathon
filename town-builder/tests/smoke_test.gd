@@ -21,6 +21,7 @@ func _run() -> void:
 	var map: TownMap = game.town_map
 	var data: GameData = game.data
 	sim.set_process(false)
+	game.set_process(false)
 
 	# Data import and derived facts
 	_check(data.error_message.is_empty(), "All JSON loaded: " + data.error_message)
@@ -41,9 +42,11 @@ func _run() -> void:
 	_check(map.home_cells().size() > 500, "Map has residential homes")
 	await _screenshot("00-welcome")
 	game.ui.event_option_chosen.emit(1)
-	_check(game.ui.is_modal_open() and game.active_event.get("id") == "share_quiz", "Skipping the tutorial opens the first quiz")
+	_check(not game.ui.is_modal_open() and not sim.paused, "Skipping the tutorial starts play before the first timed quiz")
+	game._advance_quiz_timer(data.quiz_bank.interval_seconds)
+	_check(game.ui.is_modal_open() and game.active_event.get("kind") == "quiz", "Active play opens a question from the bank")
 	await _screenshot("01-intro-quiz")
-	game.ui.event_option_chosen.emit(2)
+	game.ui.event_option_chosen.emit(0)
 	await process_frame
 	await _screenshot("02-quiz-reveal")
 	game.ui.event_closed.emit()
@@ -133,6 +136,7 @@ func _tutorial_test() -> void:
 	await process_frame
 	var sim: SimulationManager = game.simulation
 	sim.set_process(false)
+	game.set_process(false)
 	var t: Tutorial = game.tutorial
 	game.ui.event_option_chosen.emit(0)
 	_check(t.active and game.ui.is_coaching() and sim.paused, "Tutorial starts with time paused")
@@ -165,8 +169,10 @@ func _tutorial_test() -> void:
 	await _screenshot("13-tutorial-time")
 	game.ui.coach_next.emit()
 	_check(not t.active and not game.ui.is_coaching(), "Tutorial finishes")
-	_check(game.ui.is_modal_open() and game.active_event.get("id") == "share_quiz", "First quiz follows the tutorial")
-	game.ui.event_option_chosen.emit(2)
+	_check(not game.ui.is_modal_open() and not sim.paused, "Tutorial completion starts play without an immediate quiz")
+	game._advance_quiz_timer(game.data.quiz_bank.interval_seconds)
+	_check(game.ui.is_modal_open() and game.active_event.get("kind") == "quiz", "A bank question appears after the first active-play interval")
+	game.ui.event_option_chosen.emit(0)
 	game.ui.event_closed.emit()
 	_check(not sim.paused, "Time runs after the tutorial and quiz")
 	var tip: Array = game.advice(sim.state)

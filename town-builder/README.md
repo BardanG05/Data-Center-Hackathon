@@ -27,7 +27,8 @@ After that, the **Next step** bar above the map always shows the most useful act
 - Hovering shows the footprint, the noise radius, how many residents are within earshot and how many would object.
 - Click a data centre to buy upgrades (renewable deal, waste heat, local jobs, community fund) or to decommission it.
 - Scroll to zoom and right-drag to pan. Press Space or use the header buttons to pause or change speed.
-- News events pause the game: guess the answer, then see the data and the survey side by side.
+- Quick quizzes pause the game every 30 seconds of active play: choose an answer, then read the explanation. Each question appears at most once per game.
+- The renewable-energy policy remains a scheduled decision in 2023.
 - At the end, answer "how do you feel about data centres now?" and compare yourself with the survey respondents.
 
 ## Where the numbers come from
@@ -44,10 +45,22 @@ Every number in the UI is tagged **DATA** (a sourced measurement), **OPINION** (
 | Greenfield penalty | 85 of 193 named land use as a top-2 negative impact | OPINION → ASSUMPTION |
 | Data centres throttled first in a shortage | Beyond Fossil Fuels: only 4% prioritise data centres | OPINION |
 | Enterprise / colocation / hyperscale real-world figures | KPMG (2025) typical data-centre types | DATA |
-| Quiz reveals | CSO share, EirGrid renewables, survey beliefs | DATA + OPINION |
+| Quiz reveals | Supplied question bank: survey results, resource use, AI, company reports and terminology | DATA + OPINION |
 | Costs, capacities, noise radii, penalty scales | Game balance | ASSUMPTION |
 
-All data describes **Ireland**, not Bournemouth. The survey is a 200-person sample of people in Ireland and is not representative of Ireland or Bournemouth. The game says "among surveyed respondents in Ireland" wherever it uses it.
+The simulation's energy data describes **Ireland**, not Bournemouth. The hackathon survey is a 200-person sample of people in Ireland and is not representative of Ireland or Bournemouth. Quiz questions also include other surveys, global figures and company-reported estimates; their wording and explanations specify the relevant scope.
+
+## Question bank
+
+`data/question_bank.json` contains the 36 supplied questions, their answer choices, correct answers, explanations and source metadata. The supported formats are `MULTIPLE_CHOICE` (four choices), `MYTH_OR_FACT` (two choices) and `HIGHER_OR_LOWER` (two choices). The popup uses the same controls for all formats and highlights the correct answer after selection. Answers do not change money, public acceptance or the game score.
+
+- Change the file's `interval_seconds` to set the delay between quizzes (default: 30). This counts real seconds of active play, regardless of 1×/2×/4× game speed.
+- Welcome, tutorial, manual pause, other popups and the end screen stop the quiz timer. The first quiz waits for a full interval after onboarding. Reading an answer does not create a backlog of quizzes.
+- Questions are shuffled for each new game. Drawing a question removes it from that game's pool. After every enabled question has appeared, quizzes stop until **Restart town** or **Play again** creates a fresh game; there is no mid-game recycling.
+- To add a question, add an entry with a unique `id` and a `correct_answer` that exactly matches one of its options. Set `enabled` to `false` to exclude an entry from play. An empty bank is valid and disables quizzes.
+- Invalid entries fail loading with an error identifying the problem. Source metadata stays in the JSON and is not displayed in the popup. The supplied wording is preserved; implementing this bank does not independently verify the external claims.
+
+`data/events.json` now contains scheduled gameplay policy decisions only. Welcome, tutorial and final opinion prompts remain separate from the random question pool.
 
 ## Regenerating data
 
@@ -63,10 +76,13 @@ All data describes **Ireland**, not Bournemouth. The survey is a 200-person samp
 ```powershell
 ..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path . --editor --import
 ..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://tests/smoke_test.gd
+..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://tests/question_bank_test.gd
+..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://tests/quiz_flow_test.gd
 ..\.tools\godot\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script res://tests/balance.gd
 ```
 
 - `smoke_test.gd` checks the imported figures, the placement rules, the upgrade maths, throttling, the event flow and a full game. Run it without `--headless` and add `-- --capture` to save screenshots to `test-output/`.
+- `question_bank_test.gd` validates the supplied bank, no-repeat draws, exhaustion, reset, disabled questions and malformed input. `quiz_flow_test.gd` checks timer/popup behaviour and scene restart; it also supports `-- --capture` in a rendered run.
 - `balance.gd` plays three bot strategies. Currently doing nothing goes bankrupt in 2024, greedy hyperscale building gets voted out in 2024, and careful play finishes 2034 with 99% of demand met.
 
 ## Files
@@ -74,6 +90,7 @@ All data describes **Ireland**, not Bournemouth. The survey is a 200-person samp
 | File | Responsibility |
 | --- | --- |
 | `scripts/data_catalog.gd` | Loads the JSON files and derives survey rates and display facts |
+| `scripts/quiz_bank.gd` | Validates questions and manages the shuffled pool for one game |
 | `scripts/simulation_manager.gd` | Monthly model: demand, grid, water, throttling, acceptance, money, win/lose |
 | `scripts/building_manager.gd` | Placement validation, previews, building and decommissioning |
 | `scripts/town_map.gd` | Bournemouth grid, satellite underlay, noise overlay, pan and zoom |

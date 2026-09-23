@@ -134,7 +134,7 @@ func _build_steps() -> Array[Dictionary]:
 		},
 		{
 			"title": "Time starts now",
-			"text": "Each month takes 1.5 seconds. Pause with [b]Space[/b], or speed up with 2× and 4×. News headlines will pop up with quick quizzes.\n\nReach 2034 without going bankrupt or losing the public. Good luck!",
+			"text": "Each month takes 1.5 seconds. Pause with [b]Space[/b], or speed up with 2× and 4×. Quick quizzes appear during play and pause time while you answer.\n\nReach 2034 without going bankrupt or losing the public. Good luck!",
 			"button": "Start playing", "wait": "",
 			"target": func() -> Rect2: return ui.speed_rect(),
 		},

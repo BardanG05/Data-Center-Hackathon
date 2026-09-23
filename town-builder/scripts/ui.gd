@@ -24,6 +24,7 @@ const AMBER := Color("ffc970")
 const RED := Color("ff7b72")
 const GOLD := Color("ffd84d")
 const TAG_COLORS := {"data": "#2f6fd6", "opinion": "#8a4fd0", "assumption": "#5d6b70"}
+const QUIZ_TITLES := {"MULTIPLE_CHOICE": "Quick question", "MYTH_OR_FACT": "Myth or fact?", "HIGHER_OR_LOWER": "Which is higher or lower?"}
 const SCREEN := Vector2(1440, 900)
 const ADVISOR_RECT := Rect2(16, 164, 1062, 38)
 const MAP_RECT := Rect2(16, 208, 1062, 672)
@@ -655,29 +656,55 @@ func _place_coach() -> void:
 func show_event(event: Dictionary) -> void:
 	_modal.show()
 	_hover.hide()
-	_modal_kicker.text = String(event.get("kicker", "NEWS"))
-	_modal_title.text = String(event["title"])
-	_modal_body.text = _fill(String(event["body"]))
-	_set_options(event.get("options", []))
+	var quiz: bool = event.get("kind") == "quiz"
+	_set_quiz_layout(quiz)
+	if quiz:
+		_modal_kicker.text = String(event["category"]).replace("_", " ")
+		_modal_title.text = QUIZ_TITLES[event["type"]]
+		_modal_body.text = String(event["question"])
+	else:
+		_modal_kicker.text = String(event.get("kicker", "NEWS"))
+		_modal_title.text = String(event["title"])
+		_modal_body.text = _fill(String(event["body"]))
+	_modal_body.scroll_to_line(0)
+	_set_options(event.get("options", []), false, quiz)
 	_modal_continue.hide()
 
 
 func reveal_event(event: Dictionary, chosen: int) -> void:
 	var header := ""
 	if event.get("kind") == "quiz":
-		var answer := int(event["answer"])
 		var options: Array = event["options"]
-		header = "[b]%s[/b]  You said %s. Closest to the data: %s.\n\n" % ["Spot on." if chosen == answer else "Not quite.", options[chosen], options[answer]]
+		var answer: int = options.find(event["correct_answer"])
+		header = "[b]%s[/b]\n\n[b]%s[/b] Correct answer: %s.\n\n" % [event["question"], "Correct!" if chosen == answer else "Not quite.", event["correct_answer"]]
+		_modal_body.text = header + String(event["explanation"])
+		for i in range(_modal_options.get_child_count()):
+			var button: Button = _modal_options.get_child(i)
+			button.disabled = true
+			if i == answer:
+				button.add_theme_stylebox_override("disabled", _style(Color("284a3c"), 8, GREEN))
+				button.add_theme_color_override("font_disabled_color", GREEN)
+			elif i == chosen:
+				button.add_theme_stylebox_override("disabled", _style(Color("472b2c"), 8, RED))
+				button.add_theme_color_override("font_disabled_color", RED)
 	else:
 		header = "[b]You chose:[/b] %s\n\n" % event["options"][chosen]
-	_modal_body.text = header + _fill(String(event.get("reveal", "")))
-	_set_options([])
+		_modal_body.text = header + _fill(String(event.get("reveal", "")))
+		_set_options([])
+	_modal_body.scroll_to_line(0)
 	_modal_continue.text = "Continue"
 	_modal_continue.show()
+	_modal_continue.grab_focus()
+
+
+func _set_quiz_layout(quiz: bool) -> void:
+	_modal_body.size.y = 230 if quiz else 300
+	_modal_options.position.y = 390 if quiz else 440
 
 
 func show_end(state: Dictionary, summary: Dictionary) -> void:
 	_modal.show()
+	_set_quiz_layout(false)
 	_hover.hide()
 	hide_coach()
 	var outcome: String = state["outcome"]
@@ -722,16 +749,17 @@ func is_modal_open() -> bool:
 	return _modal.visible
 
 
-func _set_options(options: Array, attitude: bool = false) -> void:
+func _set_options(options: Array, attitude: bool = false, quiz: bool = false) -> void:
 	for child in _modal_options.get_children():
 		_modal_options.remove_child(child)
 		child.queue_free()
 	for i in range(options.size()):
 		var b := Button.new()
 		b.text = options[i]
-		b.custom_minimum_size = Vector2(760, 38 if attitude else 42)
+		b.custom_minimum_size = Vector2(760, 48 if quiz else (38 if attitude else 42))
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.add_theme_font_size_override("font_size", 16)
-		_style_button(b, i == 0 and options.size() == 2 and not attitude)
+		_style_button(b, i == 0 and options.size() == 2 and not attitude and not quiz)
 		var index := i
 		var text: String = options[i]
 		if attitude:

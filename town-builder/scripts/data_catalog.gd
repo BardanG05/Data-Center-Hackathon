@@ -12,6 +12,7 @@ var map: Dictionary = {}
 var survey: Dictionary = {}
 var real: Dictionary = {}
 var events: Array = []
+var quiz_bank: QuizBank = QuizBank.new()
 ## Rates the simulation uses, derived from survey.json.
 var rates: Dictionary = {}
 ## Display values for event text, e.g. {"share_2025": "23.2"}.
@@ -27,8 +28,11 @@ func load_all(data_dir: String = "res://data") -> bool:
 	survey = _read_object(data_dir.path_join("survey.json"))
 	real = _read_object(data_dir.path_join("real_world_data.json"))
 	var event_file := _read_object(data_dir.path_join("events.json"))
+	var question_file := _read_object(data_dir.path_join("question_bank.json"))
 	if not error_message.is_empty():
 		return false
+	if not quiz_bank.configure(question_file):
+		return _fail(quiz_bank.error_message)
 	buildings.clear()
 	building_order.clear()
 	for entry: Dictionary in building_file.get("buildings", []):

@@ -20,6 +20,8 @@ var active_event: Dictionary = {}
 var fired_events: Dictionary = {}
 var _speed_before_pause := 1.0
 var tutorial: Tutorial
+var _quiz_elapsed := 0.0
+var _event_answered := false
 
 
 func _ready() -> void:
@@ -61,8 +63,43 @@ func _ready() -> void:
 
 ## Starts the clock after the welcome screen or tutorial.
 func _begin_play() -> void:
+	_quiz_elapsed = 0.0
 	set_speed(1.0)
 	_check_events()
+
+
+func _process(delta: float) -> void:
+	_advance_quiz_timer(delta)
+
+
+## Count real seconds of active play, independently of the simulation speed.
+func _advance_quiz_timer(delta: float) -> void:
+	if delta <= 0.0 or not is_finite(delta) or simulation.state.is_empty():
+		return
+	if simulation.paused or simulation.state["finished"] or tutorial == null or tutorial.active:
+		return
+	if ui.is_modal_open() or not active_event.is_empty() or data.quiz_bank.remaining_count() == 0:
+		return
+	# A scheduled policy takes precedence; never stack two popups.
+	_check_events()
+	if not active_event.is_empty():
+		return
+	_quiz_elapsed += delta
+	if _quiz_elapsed < data.quiz_bank.interval_seconds:
+		return
+	var question: Dictionary = data.quiz_bank.draw()
+	if question.is_empty():
+		return
+	_quiz_elapsed = 0.0
+	question["kind"] = "quiz"
+	_open_event(question)
+
+
+func _open_event(event: Dictionary) -> void:
+	active_event = event
+	_event_answered = false
+	simulation.paused = true
+	ui.show_event(event)
 
 
 func set_speed(speed: float) -> void:
@@ -85,7 +122,7 @@ func _on_month(_year: int, _month: int) -> void:
 
 
 func _check_events() -> void:
-	if tutorial.active or not active_event.is_empty():
+	if tutorial.active or not active_event.is_empty() or simulation.state.get("finished", false):
 		return
 	var state := simulation.state
 	for event: Dictionary in data.events:
@@ -93,14 +130,14 @@ func _check_events() -> void:
 			continue
 		if int(state["year"]) > int(event["year"]) or (int(state["year"]) == int(event["year"]) and int(state["month"]) >= int(event["month"])):
 			fired_events[event["id"]] = true
-			active_event = event
-			simulation.paused = true
-			ui.show_event(event)
+			_open_event(event)
 			return
 
 
 func _on_event_option(index: int) -> void:
-	if active_event.is_empty():
+	if active_event.is_empty() or _event_answered:
+		return
+	if index < 0 or index >= active_event.get("options", []).size():
 		return
 	if active_event.get("kind") == "welcome":
 		active_event = {}
@@ -110,6 +147,7 @@ func _on_event_option(index: int) -> void:
 		else:
 			_begin_play()
 		return
+	_event_answered = true
 	var effects: Array = active_event.get("effects", [])
 	if index < effects.size():
 		simulation.apply_effect(effects[index])
@@ -120,7 +158,10 @@ func _on_event_closed() -> void:
 	if simulation.state.get("finished", false):
 		get_tree().reload_current_scene()
 		return
+	if active_event.is_empty() or not _event_answered:
+		return
 	active_event = {}
+	_event_answered = false
 	ui.hide_modal()
 	simulation.paused = false
 	set_speed(_speed_before_pause)
