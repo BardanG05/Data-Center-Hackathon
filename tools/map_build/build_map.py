@@ -24,7 +24,7 @@ def to_img(pt):
     return (x - X0, y - Y0)
 
 # Class ids in paint order: later wins where polygons overlap.
-CLASSES = ["residential", "town_centre", "open", "industrial", "green", "water", "hospital", "sea"]
+CLASSES = ["residential", "town_centre", "open", "industrial", "green", "water", "sea"]
 CID = {c: i for i, c in enumerate(CLASSES)}
 TAGS = [
     ("landuse", {"residential"}, "residential"),
@@ -37,7 +37,6 @@ TAGS = [
     ("landuse", {"forest", "cemetery", "recreation_ground", "village_green"}, "green"),
     ("natural", {"water", "beach", "sand"}, "water"),
     ("landuse", {"reservoir", "basin"}, "water"),
-    ("amenity", {"hospital"}, "hospital"),
 ]
 
 def classify(tags):
@@ -121,11 +120,9 @@ for gy in range(GRID_H):
         total = sum(counts.values())
         if counts[CID["sea"]] + counts[CID["water"]] > total * 0.5:
             cls = "sea" if counts[CID["sea"]] >= counts[CID["water"]] else "water"
-        elif counts[CID["hospital"]] > total * 0.12:
-            cls = "hospital"
         else:
-            cls = CLASSES[max((c for c in counts if CLASSES[c] not in ("sea", "water", "hospital")), key=lambda c: counts[c], default=CID["residential"])]
-        row += {"residential": "r", "town_centre": "c", "open": "o", "industrial": "i", "green": "g", "water": "w", "hospital": "h", "sea": "s"}[cls]
+            cls = CLASSES[max((c for c in counts if CLASSES[c] not in ("sea", "water")), key=lambda c: counts[c], default=CID["residential"])]
+        row += {"residential": "r", "town_centre": "c", "open": "o", "industrial": "i", "green": "g", "water": "w", "sea": "s"}[cls]
     cells.append(row)
 
 labels = []
@@ -142,7 +139,7 @@ json.dump({
     "source": "OpenStreetMap contributors (ODbL), processed by tools/map_build/build_map.py",
     "imagery": "Sentinel-2 cloudless 2023 by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2023), CC BY-NC-SA 4.0",
     "bbox": {"west": WEST, "east": EAST, "south": SOUTH, "north": NORTH},
-    "legend": {"r": "residential", "c": "town_centre", "o": "open", "i": "industrial", "g": "green", "w": "water", "h": "hospital", "s": "sea"},
+    "legend": {"r": "residential", "c": "town_centre", "o": "open", "i": "industrial", "g": "green", "w": "water", "s": "sea"},
     "width": GRID_W, "height": GRID_H, "rows": cells, "labels": labels,
 }, open(f"{OUT}/data/map.json", "w", encoding="utf-8"), indent=1)
 
@@ -150,7 +147,7 @@ import os
 os.makedirs(f"{OUT}/assets/map", exist_ok=True)
 sat.resize((GRID_W * 40, GRID_H * 40), Image.LANCZOS).save(f"{OUT}/assets/map/satellite.jpg", quality=88)
 
-colors = {"r": (214, 160, 120), "c": (230, 90, 90), "o": (190, 220, 110), "i": (150, 150, 170), "g": (60, 140, 70), "w": (80, 160, 220), "h": (255, 255, 255), "s": (30, 70, 140)}
+colors = {"r": (214, 160, 120), "c": (230, 90, 90), "o": (190, 220, 110), "i": (150, 150, 170), "g": (60, 140, 70), "w": (80, 160, 220), "s": (30, 70, 140)}
 prev = sat.resize((GRID_W * 20, GRID_H * 20)).convert("RGB")
 ov = Image.new("RGB", prev.size)
 od = ImageDraw.Draw(ov)

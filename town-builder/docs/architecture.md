@@ -26,7 +26,7 @@ The first map is a fixed 10 × 10 array drawn as isometric diamonds. A custom sm
 
 Resource rules belong in simulation/placement code. The UI displays results; it must not independently deduct money or calculate resource usage. Building artwork does not determine a tile's occupancy or resource contribution.
 
-The existing town's resource demand is a scenario baseline. Its houses, hospital and other initial visuals are not individually simulated citizens or consumers. Purchased buildings add their definitions to that baseline.
+The existing town's resource demand is a scenario baseline. Its houses and other initial visuals are not individually simulated citizens or consumers. Purchased buildings add their definitions to that baseline.
 
 ## Placement and time
 
