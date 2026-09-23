@@ -391,7 +391,7 @@ func _set_stat(key: String, value: String, detail: String, ratio: float, color: 
 func _update_breakdown() -> void:
 	var p: Dictionary = _state.get("penalties", {})
 	var lines := "[b]WHY ACCEPTANCE IS HEADING TO %d%%[/b]\n" % roundi(_state["acceptance_target"])
-	lines += "%s Start: %s%% of %s respondents supportive\n" % [_tag("opinion"), data.facts["support_pct"], data.facts["support_n"]]
+	lines += "[font_size=11]%s Start: %s%% supportive (%s surveyed)[/font_size]\n" % [_tag("opinion"), data.facts["support_pct"], data.facts["support_n"]]
 	lines += "[color=#ffc970]−%.1f[/color] objecting neighbours (%s people)\n" % [p.get("local", 0.0), GameData.thousands(_state.get("objectors", 0.0))]
 	lines += "[color=#ffc970]−%.1f[/color] data centres on greenfield land\n" % p.get("greenfield", 0.0)
 	var other := float(p.get("curtailment", 0.0)) + float(p.get("blackout", 0.0)) + float(p.get("water", 0.0)) + float(p.get("policy", 0.0))
@@ -444,14 +444,14 @@ func _show_default() -> void:
 	t += "Demand for computing in Bournemouth will grow about [b]%sx[/b] by 2034, following Ireland's real curve. Meet it by building data centres, or pay every month to import it.\n\n" % data.facts["growth_2034"]
 	t += "[b]1.[/b] Pick a building above.\n[b]2.[/b] Click a bright tile on the map.\n[b]3.[/b] Click a data centre to buy upgrades that win neighbours over.\n\n"
 	t += "[b]Map key[/b]\n"
-	t += "[color=#b8ed73]■[/color] Open land: can build, but greenfield costs acceptance\n"
-	t += "[color=#b3c7f2]■[/color] Industrial estate: can build\n"
-	t += "[color=#ffc773]■[/color] Shops & offices: can build\n"
+	t += "[color=#b8ed73]■[/color] Open land: build; greenfield penalty\n"
+	t += "[color=#b3c7f2]■[/color] Industrial estate: build\n"
+	t += "[color=#ffc773]■[/color] Shops & offices: build\n"
 	t += "[color=#6a9e70]■[/color] Heath & parks: protected\n"
-	t += "[color=#e8c9a4]■[/color] Homes: can't build, may object to noise\n"
-	t += "[color=#ff8a4d]■[/color] Orange wash: homes bothered by your data centres\n\n"
+	t += "[color=#e8c9a4]■[/color] Homes: can't build; noise risk\n"
+	t += "[color=#ff8a4d]■[/color] Orange wash: nearby homes\n\n"
 	t += "[color=#9fb8b1]Scroll to zoom · right-drag to pan · right-click or Esc cancels · Space pauses[/color]\n\n"
-	t += "%s sourced figures  %s survey answers  %s game rules" % [_tag("data"), _tag("opinion"), _tag("assumption")]
+	t += "[font_size=10]%s data · %s survey · %s rules[/font_size]" % [_tag("data"), _tag("opinion"), _tag("assumption")]
 	_info.text = t
 
 
