@@ -55,7 +55,7 @@ The simulation's energy data describes **Ireland**, not Bournemouth. The hackath
 
 ## Question bank
 
-`data/question_bank.json` contains the 36 supplied questions, their answer choices, correct answers, explanations and source metadata. The supported formats are `MULTIPLE_CHOICE` (four choices), `MYTH_OR_FACT` (two choices) and `HIGHER_OR_LOWER` (two choices). The popup uses the same controls for all formats and highlights the correct answer after selection. Answers do not change money, public acceptance or the game score.
+`data/question_bank.json` contains the 36 supplied questions, their answer choices, correct answers, explanations and source metadata. The supported formats are `MULTIPLE_CHOICE` (four choices), `MYTH_OR_FACT` (two choices) and `HIGHER_OR_LOWER` (two choices). The popup uses the same controls for all formats, highlights the correct answer after selection and applies a consequence. A correct answer rewards 10% of current gross monthly income and 1 public-acceptance point; a wrong answer loses 5% and 1.5 acceptance points. These are game-balance assumptions, and the result is shown in the explanation popup.
 
 - Change the file's `interval_seconds` to set the delay between quizzes (default: 30). This counts real seconds of active play, regardless of 1×/2×/4× game speed.
 - Welcome, tutorial, manual pause, other popups and the end screen stop the quiz timer. The first quiz waits for a full interval after onboarding. Reading an answer does not create a backlog of quizzes.

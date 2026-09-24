@@ -733,6 +733,16 @@ func reveal_event(event: Dictionary, chosen: int) -> void:
 		var options: Array = event["options"]
 		var answer: int = options.find(event["correct_answer"])
 		header = "[b]%s[/b]\n\n[b]%s[/b] Correct answer: %s.\n\n" % [event["question"], "Correct!" if chosen == answer else "Not quite.", event["correct_answer"]]
+		var quiz_result: Dictionary = event.get("quiz_result", {})
+		if not quiz_result.is_empty():
+			var correct: bool = bool(quiz_result.get("correct", chosen == answer))
+			var money_delta := float(quiz_result.get("money_delta", 0.0))
+			var acceptance_delta := float(quiz_result.get("acceptance_delta", 0.0))
+			var income_percent := roundi(float(quiz_result.get("income_fraction", 0.0)) * 100.0)
+			var money_text := ("+" if money_delta >= 0.0 else "-") + GameData.money(absf(money_delta))
+			var acceptance_text := ("+" if acceptance_delta >= 0.0 else "") + "%.1f acceptance" % acceptance_delta
+			var result_color := GREEN if correct else RED
+			header += "[color=#%s][b]%s:[/b] %s budget (%d%% of monthly income) · %s[/color]\n\n" % [result_color.to_html(false), "Reward" if correct else "Consequence", money_text, income_percent, acceptance_text]
 		_modal_body.text = header + String(event["explanation"])
 		for i in range(_modal_options.get_child_count()):
 			var button: Button = _modal_options.get_child(i)

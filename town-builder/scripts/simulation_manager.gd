@@ -175,6 +175,31 @@ func apply_effect(effect: Dictionary) -> void:
 	_emit()
 
 
+## Apply the budget and public-acceptance consequence of a recurring quiz.
+## The money percentage uses gross recurring income so a struggling town never
+## receives a reward just because its net income is negative.
+func apply_quiz_result(correct: bool) -> Dictionary:
+	var s: Dictionary = _data.scenario
+	var monthly_income := maxf(float(state.get("town_income", 0.0)) + float(state.get("revenue", 0.0)), 0.0)
+	var fraction_key := "quiz_correct_income_fraction" if correct else "quiz_wrong_income_fraction"
+	var income_fraction := maxf(float(s.get(fraction_key, 0.0)), 0.0)
+	var money_delta := monthly_income * income_fraction * (1.0 if correct else -1.0)
+	var acceptance_key := "quiz_correct_acceptance" if correct else "quiz_wrong_acceptance"
+	var acceptance_delta := float(s.get(acceptance_key, 0.0))
+	state["money"] += money_delta
+	state["acceptance_modifier"] += acceptance_delta
+	state["acceptance"] = clampf(float(state["acceptance"]) + acceptance_delta, 0.0, 100.0)
+	_recalculate()
+	_emit()
+	return {
+		"correct": correct,
+		"monthly_income": monthly_income,
+		"income_fraction": income_fraction,
+		"money_delta": money_delta,
+		"acceptance_delta": acceptance_delta,
+	}
+
+
 ## Residents objecting to noise/visual impact, optionally with a hypothetical
 ## extra building (for placement previews). Returns {objectors, exposed}.
 func exposure(extra: Dictionary = {}) -> Dictionary:

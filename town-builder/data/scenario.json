@@ -24,6 +24,11 @@
     "sea": 1.0
   },
   "site_cost_note": "Game assumptions: open land is cheaper to acquire, industrial land is the baseline and town-centre land costs more. These are not Bournemouth land-price measurements.",
+  "quiz_correct_income_fraction": 0.1,
+  "quiz_wrong_income_fraction": 0.05,
+  "quiz_correct_acceptance": 1.0,
+  "quiz_wrong_acceptance": -1.5,
+  "quiz_reward_note": "Game assumptions: a correct answer earns 10% of current gross monthly income and 1 acceptance point; a wrong answer loses 5% and 1.5 acceptance points.",
   "acceptance_amplifier": 10,
   "acceptance_response": 0.2,
   "greenfield_penalty_per_tile": 8,

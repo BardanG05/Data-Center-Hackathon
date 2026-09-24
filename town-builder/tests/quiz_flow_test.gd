@@ -120,11 +120,18 @@ func _answer_quiz(question: Dictionary, choose_correct: bool) -> void:
 	for name: String in screenshot_names:
 		await _screenshot(name + "-question")
 	var before: Dictionary = game.simulation.state.duplicate(true)
+	var monthly_income := maxf(float(before.get("town_income", 0.0)) + float(before.get("revenue", 0.0)), 0.0)
+	var income_fraction := float(game.data.scenario["quiz_correct_income_fraction"] if choose_correct else game.data.scenario["quiz_wrong_income_fraction"])
+	var expected_money_delta := monthly_income * income_fraction * (1.0 if choose_correct else -1.0)
+	var expected_acceptance_delta := float(game.data.scenario["quiz_correct_acceptance"] if choose_correct else game.data.scenario["quiz_wrong_acceptance"])
 	ui.event_option_chosen.emit(chosen)
 	_check(game._event_answered and ui._modal_continue.visible, "An answer reveals Continue")
 	_check(ui._modal_body.text.contains(question["explanation"]) and ui._modal_body.text.contains("Correct answer: " + String(question["correct_answer"])), "The reveal explains the exact correct answer")
 	_check(ui._modal_body.text.contains("Correct!" if choose_correct else "Not quite."), "The reveal reports whether the chosen answer was correct")
-	_check(game.simulation.state == before, "Correct and wrong quiz answers do not change gameplay state, money or acceptance")
+	var after_answer: Dictionary = game.simulation.state.duplicate(true)
+	_check(is_equal_approx(float(after_answer["money"]), float(before["money"]) + expected_money_delta), "Quiz answer applies the percentage money consequence")
+	_check(is_equal_approx(float(after_answer["acceptance"]), float(before["acceptance"]) + expected_acceptance_delta), "Quiz answer applies the public-acceptance consequence")
+	_check(ui._modal_body.text.contains("Reward:" if choose_correct else "Consequence:"), "Quiz reveal labels the answer consequence")
 	for index in range(options.size()):
 		var button: Button = ui._modal_options.get_child(index)
 		_check(button.disabled, "Revealed answer buttons are disabled")
@@ -132,7 +139,7 @@ func _answer_quiz(question: Dictionary, choose_correct: bool) -> void:
 	_check(correct_button.get_theme_color("font_disabled_color") == TownUI.GREEN, "The correct answer is highlighted")
 	var revealed_text: String = ui._modal_body.text
 	ui.event_option_chosen.emit((chosen + 1) % options.size())
-	_check(ui._modal_body.text == revealed_text and game.simulation.state == before, "A second answer cannot change feedback or apply effects")
+	_check(ui._modal_body.text == revealed_text and game.simulation.state == after_answer, "A second answer cannot change feedback or apply effects")
 	game._advance_quiz_timer(game.data.quiz_bank.interval_seconds * 100.0)
 	_check(is_zero_approx(game._quiz_elapsed) and game.active_event.get("id") == question["id"], "Reading the explanation adds no backlog")
 	for name: String in screenshot_names:

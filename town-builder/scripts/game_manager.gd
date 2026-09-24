@@ -171,9 +171,14 @@ func _on_event_option(index: int) -> void:
 			_begin_play()
 		return
 	_event_answered = true
-	var effects: Array = active_event.get("effects", [])
-	if index < effects.size():
-		simulation.apply_effect(effects[index])
+	if active_event.get("kind") == "quiz":
+		var options: Array = active_event.get("options", [])
+		var correct_index: int = options.find(active_event.get("correct_answer", ""))
+		active_event["quiz_result"] = simulation.apply_quiz_result(index == correct_index)
+	else:
+		var effects: Array = active_event.get("effects", [])
+		if index < effects.size():
+			simulation.apply_effect(effects[index])
 	ui.reveal_event(active_event, index)
 
 
