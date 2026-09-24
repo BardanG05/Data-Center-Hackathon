@@ -26,12 +26,14 @@ func _run() -> void:
 		return
 	var interval: float = game.data.quiz_bank.interval_seconds
 	var total: int = game.data.quiz_bank.total_count()
+	_check(is_equal_approx(interval, 60.0), "Mandatory press conferences use a one-minute interval")
 	_check(total == 36, "All 36 supplied questions load into the game")
 	_check(game.active_event.get("id") == "welcome", "Welcome is the first modal")
 	game._advance_quiz_timer(interval * 100.0)
 	_check(game.data.quiz_bank.remaining_count() == total and is_zero_approx(game._quiz_elapsed), "Welcome time does not consume questions or timer")
 	game.ui.event_option_chosen.emit(1)
 	_check(game.active_event.is_empty() and not game.ui.is_modal_open() and not game.simulation.paused, "Skipping the welcome starts play without an immediate quiz")
+	_check(not game.ui._press_conference_button.disabled and game.ui._press_conference_button.text.contains("Attend press conference"), "The optional press conference button is available during play")
 	game._advance_quiz_timer(interval * 0.5)
 	_check(not game.ui.is_modal_open(), "First quiz waits for the configured interval")
 	game.set_speed(0.0)
@@ -49,7 +51,7 @@ func _run() -> void:
 	_check(is_equal_approx(game._quiz_elapsed, interval * 0.75), "Finished games do not advance the timer")
 	game.simulation.state["finished"] = false
 	game._advance_quiz_timer(interval * 0.25)
-	_check(game.active_event.get("kind") == "quiz" and game.simulation.paused, "The interval opens a quiz and pauses the simulation")
+	_check(game.active_event.get("kind") == "quiz" and game.active_event.get("quiz_source") == "mandatory" and game.simulation.paused, "The interval opens a mandatory press conference and pauses the simulation")
 	_check(game.data.quiz_bank.remaining_count() == total - 1, "A question is consumed when it appears")
 
 	var seen: Dictionary = {}
@@ -131,7 +133,7 @@ func _answer_quiz(question: Dictionary, choose_correct: bool) -> void:
 	var after_answer: Dictionary = game.simulation.state.duplicate(true)
 	_check(is_equal_approx(float(after_answer["money"]), float(before["money"]) + expected_money_delta), "Quiz answer applies the percentage money consequence")
 	_check(is_equal_approx(float(after_answer["acceptance"]), float(before["acceptance"]) + expected_acceptance_delta), "Quiz answer applies the public-acceptance consequence")
-	_check(ui._modal_body.text.contains("Reward:" if choose_correct else "Consequence:"), "Quiz reveal labels the answer consequence")
+	_check(ui._modal_body.text.contains("You answered correctly." if choose_correct else "You answered incorrectly."), "Quiz reveal explains the answer consequence")
 	for index in range(options.size()):
 		var button: Button = ui._modal_options.get_child(index)
 		_check(button.disabled, "Revealed answer buttons are disabled")
@@ -187,11 +189,19 @@ func _restart_and_tutorial_test(total: int, previously_seen: Dictionary) -> void
 	_check(game.active_event.is_empty() and is_zero_approx(game._quiz_elapsed) and game.data.quiz_bank.remaining_count() == total, "Tutorial reading time cannot trigger or queue quizzes")
 	game.ui.coach_skip.emit()
 	_check(not game.tutorial.active and not game.ui.is_modal_open() and not game.simulation.paused, "Leaving the tutorial begins play without an immediate quiz")
+	var optional_remaining: int = game.data.quiz_bank.remaining_count()
+	game.ui.press_conference_requested.emit()
+	_check(game.active_event.get("kind") == "quiz" and game.active_event.get("quiz_source") == "optional", "The player can call an optional press conference")
+	_check(game.data.quiz_bank.remaining_count() == optional_remaining - 1 and is_zero_approx(game._quiz_elapsed), "An optional press conference consumes one question and resets the timer")
+	var optional_question: Dictionary = game.active_event.duplicate(true)
+	await _answer_quiz(optional_question, true)
+	game.ui.event_closed.emit()
+	_check(game.active_event.is_empty() and not game.ui.is_modal_open(), "Closing an optional press conference resumes the game")
 	game._advance_quiz_timer(game.data.quiz_bank.interval_seconds - 0.25)
 	_check(game.active_event.is_empty(), "A fresh interval is required after the tutorial")
 	game._advance_quiz_timer(0.25)
-	_check(game.active_event.get("kind") == "quiz" and previously_seen.has(game.active_event.get("id")), "A new game can reuse a question from the previous game")
-	_check(game.data.quiz_bank.remaining_count() == total - 1, "The new game has its own unused question pool")
+	_check(game.active_event.get("kind") == "quiz" and game.active_event.get("quiz_source") == "mandatory" and previously_seen.has(game.active_event.get("id")), "A new game can reuse a question from the previous game")
+	_check(game.data.quiz_bank.remaining_count() == total - 2, "Optional and mandatory conferences each consume one question")
 
 
 func _freeze_processing() -> void:

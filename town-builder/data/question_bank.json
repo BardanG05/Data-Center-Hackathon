@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "interval_seconds": 30.0,
+  "interval_seconds": 60.0,
   "questions": [
     {
       "id": "ireland_dc_electricity_2025",

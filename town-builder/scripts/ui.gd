@@ -6,6 +6,7 @@ signal build_selected(building_id: String)
 signal upgrade_requested(uid: int, upgrade_id: String)
 signal demolish_requested(uid: int)
 signal speed_requested(speed: float)
+signal press_conference_requested
 signal restart_requested
 signal restart_confirmed
 signal restart_cancelled
@@ -52,6 +53,7 @@ var _stat_panels: Dictionary = {}
 var _date: Label
 var _speed_buttons: Dictionary = {}
 var _build_buttons: Dictionary = {}
+var _press_conference_button: Button
 var _advisor: Label
 var _advisor_panel: Panel
 var _info: RichTextLabel
@@ -107,6 +109,7 @@ func configure(game_data: GameData, sim: SimulationManager) -> void:
 		var def: Dictionary = data.buildings[id]
 		_build_buttons[id].text = "%s\nsite price varies" % def["name"]
 		_build_buttons[id].tooltip_text = _building_summary(def)
+	set_press_conference_available(data.quiz_bank.remaining_count())
 	_show_default()
 
 
@@ -186,9 +189,13 @@ func _build_side() -> void:
 		b.pressed.connect(func() -> void: build_selected.emit(building_id))
 		_build_buttons[id] = b
 		i += 1
+	_press_conference_button = _button("Attend press conference", Vector2(SIDE_X, 350), Vector2(SIDE_W, 30), true)
+	_press_conference_button.add_theme_font_size_override("font_size", 11)
+	_press_conference_button.tooltip_text = "Choose when to answer the next unused press question."
+	_press_conference_button.pressed.connect(func() -> void: press_conference_requested.emit())
 	var scroll := ScrollContainer.new()
-	scroll.position = Vector2(SIDE_X, 352)
-	scroll.size = Vector2(SIDE_W, 392)
+	scroll.position = Vector2(SIDE_X, 388)
+	scroll.size = Vector2(SIDE_W, 356)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_root.add_child(scroll)
 	var box := VBoxContainer.new()
@@ -344,6 +351,7 @@ func _build_coach() -> void:
 
 func update_state(state: Dictionary) -> void:
 	_state = state
+	set_press_conference_available(data.quiz_bank.remaining_count())
 	var months := ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 	_date.text = "%s %d" % [months[int(state["month"]) - 1], int(state["year"])]
 	var net := float(state["net_income"])
@@ -596,6 +604,13 @@ func set_speed(speed: float) -> void:
 		_style_button(_speed_buttons[s], is_equal_approx(s, speed))
 
 
+func set_press_conference_available(remaining: int) -> void:
+	if _press_conference_button == null:
+		return
+	_press_conference_button.disabled = remaining <= 0 or bool(_state.get("finished", false))
+	_press_conference_button.text = "Attend press conference · %d left" % remaining if remaining > 0 else "No press conferences left"
+
+
 # ------------------------------------------------------------------ screen rects for the tutorial
 
 func stat_rect(key: String) -> Rect2:
@@ -675,7 +690,7 @@ func show_event(event: Dictionary) -> void:
 	var quiz: bool = event.get("kind") == "quiz"
 	_set_quiz_layout(quiz)
 	if quiz:
-		_modal_kicker.text = String(event["category"]).replace("_", " ")
+		_modal_kicker.text = "PRESS CONFERENCE" if event.get("quiz_source", "") in ["mandatory", "optional"] else String(event["category"]).replace("_", " ")
 		_modal_title.text = QUIZ_TITLES[event["type"]]
 		_modal_body.text = String(event["question"])
 	else:
@@ -740,9 +755,10 @@ func reveal_event(event: Dictionary, chosen: int) -> void:
 			var acceptance_delta := float(quiz_result.get("acceptance_delta", 0.0))
 			var income_percent := roundi(float(quiz_result.get("income_fraction", 0.0)) * 100.0)
 			var money_text := ("+" if money_delta >= 0.0 else "-") + GameData.money(absf(money_delta))
-			var acceptance_text := ("+" if acceptance_delta >= 0.0 else "") + "%.1f acceptance" % acceptance_delta
+			var acceptance_text := ("+" if acceptance_delta >= 0.0 else "") + "%.1f" % acceptance_delta
 			var result_color := GREEN if correct else RED
-			header += "[color=#%s][b]%s:[/b] %s budget (%d%% of monthly income) · %s[/color]\n\n" % [result_color.to_html(false), "Reward" if correct else "Consequence", money_text, income_percent, acceptance_text]
+			var verdict := "You answered correctly. The public trust you more." if correct else "You answered incorrectly. The public trust you less."
+			header += "[color=#%s][b]%s[/b] %s budget (%d%% of monthly income) · %s public trust[/color]\n\n" % [result_color.to_html(false), verdict, money_text, income_percent, acceptance_text]
 		_modal_body.text = header + String(event["explanation"])
 		for i in range(_modal_options.get_child_count()):
 			var button: Button = _modal_options.get_child(i)

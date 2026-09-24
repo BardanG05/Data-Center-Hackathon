@@ -49,6 +49,7 @@ func _ready() -> void:
 	ui.upgrade_requested.connect(_on_upgrade)
 	ui.demolish_requested.connect(_on_demolish)
 	ui.speed_requested.connect(set_speed)
+	ui.press_conference_requested.connect(_on_press_conference_requested)
 	ui.event_option_chosen.connect(_on_event_option)
 	ui.event_closed.connect(_on_event_closed)
 	ui.attitude_chosen.connect(func(option: String) -> void: ui.reveal_attitude(option))
@@ -115,6 +116,7 @@ func _advance_quiz_timer(delta: float) -> void:
 		return
 	_quiz_elapsed = 0.0
 	question["kind"] = "quiz"
+	question["quiz_source"] = "mandatory"
 	_open_event(question)
 
 
@@ -122,7 +124,22 @@ func _open_event(event: Dictionary) -> void:
 	active_event = event
 	_event_answered = false
 	simulation.paused = true
+	ui.set_press_conference_available(data.quiz_bank.remaining_count())
 	ui.show_event(event)
+
+
+func _on_press_conference_requested() -> void:
+	if data.quiz_bank.remaining_count() == 0 or simulation.state.get("finished", false) or tutorial == null or tutorial.active:
+		return
+	if ui.is_modal_open() or not active_event.is_empty():
+		return
+	var question: Dictionary = data.quiz_bank.draw()
+	if question.is_empty():
+		return
+	_quiz_elapsed = 0.0
+	question["kind"] = "quiz"
+	question["quiz_source"] = "optional"
+	_open_event(question)
 
 
 func set_speed(speed: float) -> void:

@@ -2,7 +2,7 @@ class_name QuizBank
 extends RefCounted
 ## A shuffled pool for one game. Drawing consumes a question; only reset refills it.
 
-const DEFAULT_INTERVAL_SECONDS: float = 30.0
+const DEFAULT_INTERVAL_SECONDS: float = 60.0
 const REQUIRED_TEXT_FIELDS: Array[String] = [
 	"id", "type", "category", "question", "correct_answer", "explanation",
 	"source_type", "source_label",

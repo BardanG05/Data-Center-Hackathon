@@ -28,7 +28,7 @@ After that, the **Next step** bar above the map always shows the most useful act
 - Hovering shows the footprint, the noise radius, how many residents are within earshot and how many would object.
 - Click a data centre to buy upgrades (renewable deal, waste heat, local jobs, community fund) or to decommission it.
 - Scroll to zoom and right-drag to pan. Press Space or use the header buttons to pause or change speed.
-- Quick quizzes pause the game every 30 seconds of active play: choose an answer, then read the explanation. Each question appears at most once per game.
+- Press conferences pause the game for a question. You can attend one whenever you want, and one mandatory conference arrives every 60 seconds of active play. Each question appears at most once per game.
 - The renewable-energy policy remains a scheduled decision in 2023.
 - **Restart** asks for confirmation before discarding the current town.
 - At the end, answer "how do you feel about data centres now?" and compare yourself with the survey respondents.
@@ -57,7 +57,7 @@ The simulation's energy data describes **Ireland**, not Bournemouth. The hackath
 
 `data/question_bank.json` contains the 36 supplied questions, their answer choices, correct answers, explanations and source metadata. The supported formats are `MULTIPLE_CHOICE` (four choices), `MYTH_OR_FACT` (two choices) and `HIGHER_OR_LOWER` (two choices). The popup uses the same controls for all formats, highlights the correct answer after selection and applies a consequence. A correct answer rewards 10% of current gross monthly income and 1 public-acceptance point; a wrong answer loses 5% and 1.5 acceptance points. These are game-balance assumptions, and the result is shown in the explanation popup.
 
-- Change the file's `interval_seconds` to set the delay between quizzes (default: 30). This counts real seconds of active play, regardless of 1×/2×/4× game speed.
+- Change the file's `interval_seconds` to set the delay between mandatory conferences (default: 60). This counts real seconds of active play, regardless of 1×/2×/4× game speed. Optional conferences use the same question pool and reset the timer.
 - Welcome, tutorial, manual pause, other popups and the end screen stop the quiz timer. The first quiz waits for a full interval after onboarding. Reading an answer does not create a backlog of quizzes.
 - Questions are shuffled for each new game. Drawing a question removes it from that game's pool. After every enabled question has appeared, quizzes stop until **Restart town** or **Play again** creates a fresh game; there is no mid-game recycling.
 - To add a question, add an entry with a unique `id` and a `correct_answer` that exactly matches one of its options. Set `enabled` to `false` to exclude an entry from play. An empty bank is valid and disables quizzes.
