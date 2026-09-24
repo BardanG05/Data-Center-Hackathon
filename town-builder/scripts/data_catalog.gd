@@ -12,6 +12,7 @@ var map: Dictionary = {}
 var survey: Dictionary = {}
 var real: Dictionary = {}
 var events: Array = []
+var quiz_bank: QuizBank = QuizBank.new()
 ## Rates the simulation uses, derived from survey.json.
 var rates: Dictionary = {}
 ## Display values for event text, e.g. {"share_2025": "23.2"}.
@@ -27,8 +28,15 @@ func load_all(data_dir: String = "res://data") -> bool:
 	survey = _read_object(data_dir.path_join("survey.json"))
 	real = _read_object(data_dir.path_join("real_world_data.json"))
 	var event_file := _read_object(data_dir.path_join("events.json"))
+	var question_file := _read_object(data_dir.path_join("question_bank.json"))
 	if not error_message.is_empty():
 		return false
+	if not quiz_bank.configure(question_file):
+		return _fail(quiz_bank.error_message)
+	for entry: Dictionary in question_file.get("questions", []):
+		var link: Variant = entry.get("survey_compare")
+		if link != null and (not link is Dictionary or not survey.get("questions", {}).has(link.get("question", ""))):
+			return _fail("Question '%s' has a survey_compare that does not match a survey.json question." % entry.get("id", "?"))
 	buildings.clear()
 	building_order.clear()
 	for entry: Dictionary in building_file.get("buildings", []):
@@ -135,6 +143,15 @@ func _derive() -> bool:
 	facts["prio_housing"] = _pct(prio["Housing / Residential"])
 	facts["prio_dc"] = _pct(prio["Data centres"])
 	return true
+
+
+## "54% of 189" style comparison for a quiz reveal, or {} if the question has none.
+func survey_comparison(question: Dictionary) -> Dictionary:
+	var link: Variant = question.get("survey_compare")
+	if not link is Dictionary:
+		return {}
+	var q: Dictionary = survey["questions"][link["question"]]
+	return {"pct": _pct(_share(q, link.get("options", []))), "n": str(int(q["valid_n"])), "text": link.get("text", "")}
 
 
 func _share(question: Dictionary, keys: Array) -> float:

@@ -47,6 +47,9 @@ func _draw() -> void:
 
 func _draw_data_centre(size: Vector2) -> void:
 	var body := Rect2(Vector2(3, 3), size - Vector2(6, 6))
+	# Soft glow so centres stay visible on a projector at full-map zoom.
+	draw_rect(body.grow(7), Color(_color, 0.18))
+	draw_rect(body.grow(4), Color(_color, 0.35))
 	draw_rect(body.grow(1) , Color(0, 0, 0, 0.45))
 	draw_rect(body, Color("1b2a33"))
 	draw_rect(body, _color, false, 2.0)

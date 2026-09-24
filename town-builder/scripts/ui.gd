@@ -6,7 +6,10 @@ signal build_selected(building_id: String)
 signal upgrade_requested(uid: int, upgrade_id: String)
 signal demolish_requested(uid: int)
 signal speed_requested(speed: float)
+signal press_conference_requested
 signal restart_requested
+signal restart_confirmed
+signal restart_cancelled
 signal event_option_chosen(index: int)
 signal event_closed
 signal attitude_chosen(option: String)
@@ -24,6 +27,7 @@ const AMBER := Color("ffc970")
 const RED := Color("ff7b72")
 const GOLD := Color("ffd84d")
 const TAG_COLORS := {"data": "#2f6fd6", "opinion": "#8a4fd0", "assumption": "#5d6b70"}
+const QUIZ_TITLES := {"MULTIPLE_CHOICE": "Quick question", "MYTH_OR_FACT": "Myth or fact?", "HIGHER_OR_LOWER": "Which is higher or lower?"}
 const SCREEN := Vector2(1440, 900)
 const ADVISOR_RECT := Rect2(16, 164, 1062, 38)
 const MAP_RECT := Rect2(16, 208, 1062, 672)
@@ -49,6 +53,7 @@ var _stat_panels: Dictionary = {}
 var _date: Label
 var _speed_buttons: Dictionary = {}
 var _build_buttons: Dictionary = {}
+var _press_conference_button: Button
 var _advisor: Label
 var _advisor_panel: Panel
 var _info: RichTextLabel
@@ -77,6 +82,7 @@ var _state: Dictionary = {}
 var _armed := ""
 var _selected: Dictionary = {}
 var _preview: Dictionary = {}
+var _restart_confirmation_open := false
 
 
 func _ready() -> void:
@@ -101,8 +107,9 @@ func configure(game_data: GameData, sim: SimulationManager) -> void:
 	simulation = sim
 	for id: String in data.building_order:
 		var def: Dictionary = data.buildings[id]
-		_build_buttons[id].text = "%s\n%s" % [def["name"], GameData.money(float(def["cost"]))]
+		_build_buttons[id].text = String(def["name"])
 		_build_buttons[id].tooltip_text = _building_summary(def)
+	set_press_conference_available(data.quiz_bank.remaining_count())
 	_show_default()
 
 
@@ -182,9 +189,13 @@ func _build_side() -> void:
 		b.pressed.connect(func() -> void: build_selected.emit(building_id))
 		_build_buttons[id] = b
 		i += 1
+	_press_conference_button = _button("Attend press conference", Vector2(SIDE_X, 350), Vector2(SIDE_W, 30), true)
+	_press_conference_button.add_theme_font_size_override("font_size", 11)
+	_press_conference_button.tooltip_text = "Choose when to answer the next unused press question."
+	_press_conference_button.pressed.connect(func() -> void: press_conference_requested.emit())
 	var scroll := ScrollContainer.new()
-	scroll.position = Vector2(SIDE_X, 352)
-	scroll.size = Vector2(SIDE_W, 392)
+	scroll.position = Vector2(SIDE_X, 388)
+	scroll.size = Vector2(SIDE_W, 356)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_root.add_child(scroll)
 	var box := VBoxContainer.new()
@@ -340,6 +351,7 @@ func _build_coach() -> void:
 
 func update_state(state: Dictionary) -> void:
 	_state = state
+	set_press_conference_available(data.quiz_bank.remaining_count())
 	var months := ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 	_date.text = "%s %d" % [months[int(state["month"]) - 1], int(state["year"])]
 	var net := float(state["net_income"])
@@ -387,7 +399,7 @@ func _set_stat(key: String, value: String, detail: String, ratio: float, color: 
 func _update_breakdown() -> void:
 	var p: Dictionary = _state.get("penalties", {})
 	var lines := "[b]WHY ACCEPTANCE IS HEADING TO %d%%[/b]\n" % roundi(_state["acceptance_target"])
-	lines += "%s Start: %s%% of %s respondents supportive\n" % [_tag("opinion"), data.facts["support_pct"], data.facts["support_n"]]
+	lines += "[font_size=11]%s Start: %s%% supportive (%s surveyed)[/font_size]\n" % [_tag("opinion"), data.facts["support_pct"], data.facts["support_n"]]
 	lines += "[color=#ffc970]−%.1f[/color] objecting neighbours (%s people)\n" % [p.get("local", 0.0), GameData.thousands(_state.get("objectors", 0.0))]
 	lines += "[color=#ffc970]−%.1f[/color] data centres on greenfield land\n" % p.get("greenfield", 0.0)
 	var other := float(p.get("curtailment", 0.0)) + float(p.get("blackout", 0.0)) + float(p.get("water", 0.0)) + float(p.get("policy", 0.0))
@@ -440,21 +452,24 @@ func _show_default() -> void:
 	t += "Demand for computing in Bournemouth will grow about [b]%sx[/b] by 2034, following Ireland's real curve. Meet it by building data centres, or pay every month to import it.\n\n" % data.facts["growth_2034"]
 	t += "[b]1.[/b] Pick a building above.\n[b]2.[/b] Click a bright tile on the map.\n[b]3.[/b] Click a data centre to buy upgrades that win neighbours over.\n\n"
 	t += "[b]Map key[/b]\n"
-	t += "[color=#b8ed73]■[/color] Open land: can build, but greenfield costs acceptance\n"
-	t += "[color=#b3c7f2]■[/color] Industrial estate: can build\n"
-	t += "[color=#ffc773]■[/color] Shops & offices: can build\n"
+	t += "[color=#b8ed73]■[/color] Open land: build; greenfield penalty\n"
+	t += "[color=#b3c7f2]■[/color] Industrial estate: build\n"
+	t += "[color=#ffc773]■[/color] Shops & offices: build\n"
 	t += "[color=#6a9e70]■[/color] Heath & parks: protected\n"
-	t += "[color=#e8c9a4]■[/color] Homes: can't build, may object to noise\n"
-	t += "[color=#ff8a4d]■[/color] Orange wash: homes bothered by your data centres\n\n"
+	t += "[color=#e8c9a4]■[/color] Homes: can't build; noise risk\n"
+	t += "[color=#ff8a4d]■[/color] Orange wash: nearby homes\n\n"
 	t += "[color=#9fb8b1]Scroll to zoom · right-drag to pan · right-click or Esc cancels · Space pauses[/color]\n\n"
-	t += "%s sourced figures  %s survey answers  %s game rules" % [_tag("data"), _tag("opinion"), _tag("assumption")]
+	t += "[font_size=10]%s data · %s survey · %s rules[/font_size]" % [_tag("data"), _tag("opinion"), _tag("assumption")]
 	_info.text = t
 
 
 func _show_armed() -> void:
 	_clear_actions()
 	var def: Dictionary = data.buildings[_armed]
-	var t := "[b]%s[/b]  [color=#ffc970]%s[/color]\n[color=#9fb8b1]%s[/color]\n" % [def["name"], GameData.money(float(_preview.get("cost", simulation.build_cost(_armed)))), def["description"]]
+	var price_text := "site price on hover"
+	if not _preview.is_empty():
+		price_text = GameData.money(float(_preview.get("cost", simulation.build_cost(_armed))))
+	var t := "[b]%s[/b]  [color=#ffc970]%s[/color]\n[color=#9fb8b1]%s[/color]\n" % [def["name"], price_text, def["description"]]
 	t += _building_summary(def) + "\n"
 	if def["category"] == "data_centre":
 		var ref: Dictionary = data.real["facts"]["typical_data_centre_types"]["by_type"].get(def.get("real_type", ""), {})
@@ -464,6 +479,16 @@ func _show_armed() -> void:
 	if _preview.is_empty():
 		t += "\n[color=#ffd84d]Move the mouse over the map. Bright tiles are where this can go.[/color]"
 	else:
+		var site_type := String(_preview.get("site_type", "mixed site"))
+		var site_name := String(TownMap.TERRAIN_NAMES.get(site_type, site_type.capitalize()))
+		var site_multiplier := float(_preview.get("site_multiplier", 1.0))
+		t += "\n[b]This site[/b] %s · build cost [color=#ffc970]%s[/color]\n" % [site_name, GameData.money(float(_preview.get("cost", simulation.build_cost(_armed))))]
+		t += "Site price is %d%% of this building's baseline." % roundi(site_multiplier * 100.0)
+		if site_multiplier < 0.999:
+			t += " Lower-cost land."
+		elif site_multiplier > 1.001:
+			t += " Higher-cost town-centre land."
+		t += "\n"
 		if _preview.has("exposed"):
 			t += "\n[b]On this tile[/b]\n%s residents within earshot, about [color=#ffc970]%s would object[/color]\n%s %s%% of %s respondents found a data centre within 5 km of home unacceptable\n" % [
 				GameData.thousands(_preview["exposed"]), GameData.thousands(_preview.get("new_objectors", 0.0)), _tag("opinion"), data.facts["objection_pct"], data.facts["objection_n"]]
@@ -490,7 +515,11 @@ func _show_selected() -> void:
 	var ex: Dictionary = simulation.exposure_of(record)
 	t += "%d compute%s · earns %s/month\n" % [def["compute_capacity"], (" (throttled to %d%%)" % roundi(output * 100.0)) if output < 0.999 else "", GameData.money(float(def["revenue_per_month"]) * output)]
 	t += "Neighbours objecting: [color=#ffc970]%s[/color] of %s within earshot\n" % [GameData.thousands(ex["objectors"]), GameData.thousands(ex["exposed"])]
-	t += "\n[b]Upgrades[/b]\nEach upgrade wins over a share of this centre's objectors. The %% is how many survey respondents picked that condition in their top 3. %s %s" % [_tag("opinion"), _tag("assumption")]
+	t += "\n[b]Upgrades[/b]\nChoose a commitment based on its cost and real-world benefit. The public-opinion result is revealed after purchase. %s %s" % [_tag("opinion"), _tag("assumption")]
+	if not record["upgrades"].is_empty():
+		t += "\n\n[b]Revealed effects[/b]\n"
+		for upgrade_id: String in record["upgrades"]:
+			t += "✓ %s\n" % _upgrade_effect_summary(upgrade_id)
 	_info.text = t
 	_rebuild_actions(record, true)
 
@@ -509,6 +538,14 @@ func _building_summary(def: Dictionary) -> String:
 	return " · ".join(parts)
 
 
+func _upgrade_effect_summary(upgrade_id: String) -> String:
+	var up: Dictionary = data.upgrades[upgrade_id]
+	if upgrade_id == "renewable":
+		return "%s: grid draw halved." % up["name"]
+	return "%s: nearby objections reduced by %s%% after this commitment (survey signal, %s respondents)." % [
+		up["name"], data.facts.get("pct_" + upgrade_id, "—"), data.facts.get("top3_n", "the survey")]
+
+
 func _rebuild_actions(record: Dictionary, upgrades: bool) -> void:
 	var key := "%d:%s" % [record["uid"], ",".join(record["upgrades"])] if upgrades else "%d" % record["uid"]
 	if _actions.get_meta("key", "") == key:
@@ -523,7 +560,7 @@ func _rebuild_actions(record: Dictionary, upgrades: bool) -> void:
 			var up: Dictionary = data.upgrades[upgrade_id]
 			var owned: bool = upgrade_id in record["upgrades"]
 			var cost := simulation.upgrade_cost(record, upgrade_id)
-			var label := "✓ %s" % up["name"] if owned else "%s · %s · wins %s%%" % [up["name"], GameData.money(cost), data.facts["pct_" + upgrade_id]]
+			var label := "✓ %s" % up["name"] if owned else "%s · %s" % [up["name"], GameData.money(cost)]
 			var b := _action_button(label)
 			b.tooltip_text = up["summary"]
 			b.disabled = owned or float(_state.get("money", 0)) < cost
@@ -577,6 +614,13 @@ func show_hover(text: String) -> void:
 func set_speed(speed: float) -> void:
 	for s: float in _speed_buttons:
 		_style_button(_speed_buttons[s], is_equal_approx(s, speed))
+
+
+func set_press_conference_available(remaining: int) -> void:
+	if _press_conference_button == null:
+		return
+	_press_conference_button.disabled = remaining <= 0 or bool(_state.get("finished", false))
+	_press_conference_button.text = "Attend press conference · %d left" % remaining if remaining > 0 else "No press conferences left"
 
 
 # ------------------------------------------------------------------ screen rects for the tutorial
@@ -655,29 +699,116 @@ func _place_coach() -> void:
 func show_event(event: Dictionary) -> void:
 	_modal.show()
 	_hover.hide()
-	_modal_kicker.text = String(event.get("kicker", "NEWS"))
-	_modal_title.text = String(event["title"])
-	_modal_body.text = _fill(String(event["body"]))
-	_set_options(event.get("options", []))
+	var quiz: bool = event.get("kind") == "quiz"
+	_set_quiz_layout(quiz)
+	if quiz:
+		_modal_kicker.text = "PRESS CONFERENCE" if event.get("quiz_source", "") in ["mandatory", "optional"] else String(event["category"]).replace("_", " ")
+		_modal_title.text = QUIZ_TITLES[event["type"]]
+		_modal_body.text = String(event["question"])
+	else:
+		_modal_kicker.text = String(event.get("kicker", "NEWS"))
+		_modal_title.text = String(event["title"])
+		_modal_body.text = _fill(String(event["body"]))
+	_modal_body.scroll_to_line(0)
+	_set_options(event.get("options", []), false, quiz)
 	_modal_continue.hide()
+
+
+func show_restart_confirmation() -> void:
+	if is_modal_open():
+		return
+	_restart_confirmation_open = true
+	_modal.show()
+	_hover.hide()
+	_set_quiz_layout(false)
+	_modal_kicker.text = "RESTART TOWN"
+	_modal_title.text = "Restart this game?"
+	_modal_body.text = "Your current town, money, buildings, progress and question history will be lost."
+	_modal_options.position.y = 440
+	for child in _modal_options.get_children():
+		_modal_options.remove_child(child)
+		child.queue_free()
+	var restart_button := Button.new()
+	restart_button.text = "Restart town"
+	restart_button.custom_minimum_size = Vector2(760, 48)
+	_style_button(restart_button, true)
+	restart_button.pressed.connect(func() -> void: restart_confirmed.emit())
+	_modal_options.add_child(restart_button)
+	var cancel_button := Button.new()
+	cancel_button.text = "Keep playing"
+	cancel_button.custom_minimum_size = Vector2(760, 48)
+	_style_button(cancel_button, false)
+	cancel_button.pressed.connect(func() -> void: restart_cancelled.emit())
+	_modal_options.add_child(cancel_button)
+	_modal_continue.hide()
+	cancel_button.grab_focus()
+
+
+func hide_restart_confirmation() -> void:
+	if not _restart_confirmation_open:
+		return
+	_restart_confirmation_open = false
+	_modal.hide()
+	for child in _modal_options.get_children():
+		_modal_options.remove_child(child)
+		child.queue_free()
 
 
 func reveal_event(event: Dictionary, chosen: int) -> void:
 	var header := ""
 	if event.get("kind") == "quiz":
-		var answer := int(event["answer"])
 		var options: Array = event["options"]
-		header = "[b]%s[/b]  You said %s. Closest to the data: %s.\n\n" % ["Spot on." if chosen == answer else "Not quite.", options[chosen], options[answer]]
+		var answer: int = options.find(event["correct_answer"])
+		header = "[b]%s[/b]\n\n[b]%s[/b] Correct answer: %s.\n\n" % [event["question"], "Correct!" if chosen == answer else "Not quite.", event["correct_answer"]]
+		var quiz_result: Dictionary = event.get("quiz_result", {})
+		if not quiz_result.is_empty():
+			var correct: bool = bool(quiz_result.get("correct", chosen == answer))
+			var money_delta := float(quiz_result.get("money_delta", 0.0))
+			var acceptance_delta := float(quiz_result.get("acceptance_delta", 0.0))
+			var income_percent := roundi(float(quiz_result.get("income_fraction", 0.0)) * 100.0)
+			var money_text := ("+" if money_delta >= 0.0 else "-") + GameData.money(absf(money_delta))
+			var acceptance_text := ("+" if acceptance_delta >= 0.0 else "") + "%.1f" % acceptance_delta
+			var result_color := GREEN if correct else RED
+			var verdict := "You answered correctly. The public trust you more." if correct else "You answered incorrectly. The public trust you less."
+			header += "[color=#%s][b]%s[/b] %s budget (%d%% of monthly income) · %s public trust[/color]\n\n" % [result_color.to_html(false), verdict, money_text, income_percent, acceptance_text]
+		var belief := data.survey_comparison(event)
+		if not belief.is_empty():
+			header += "%s %s%% of %s surveyed people in Ireland %s.\n\n" % [_tag("opinion"), belief["pct"], belief["n"], belief["text"]]
+		var fact_tag := _tag("data") + " " if String(event.get("source_type", "")) == "SUPPLIED_DATA" else ""
+		_modal_body.text = header + fact_tag + String(event["explanation"])
+		for i in range(_modal_options.get_child_count()):
+			var button: Button = _modal_options.get_child(i)
+			button.disabled = true
+			if i == answer:
+				button.add_theme_stylebox_override("disabled", _style(Color("284a3c"), 8, GREEN))
+				button.add_theme_color_override("font_disabled_color", GREEN)
+			elif i == chosen:
+				button.add_theme_stylebox_override("disabled", _style(Color("472b2c"), 8, RED))
+				button.add_theme_color_override("font_disabled_color", RED)
+			else:
+				# Only the chosen and correct answers stay, leaving room for the explanation.
+				button.hide()
+		var shown := 1 if chosen == answer else 2
+		_modal_options.position.y = 610 - shown * 56
+		_modal_body.size.y = _modal_options.position.y - 150
 	else:
 		header = "[b]You chose:[/b] %s\n\n" % event["options"][chosen]
-	_modal_body.text = header + _fill(String(event.get("reveal", "")))
-	_set_options([])
+		_modal_body.text = header + _fill(String(event.get("reveal", "")))
+		_set_options([])
+	_modal_body.scroll_to_line(0)
 	_modal_continue.text = "Continue"
 	_modal_continue.show()
+	_modal_continue.grab_focus()
+
+
+func _set_quiz_layout(quiz: bool) -> void:
+	_modal_body.size.y = 230 if quiz else 300
+	_modal_options.position.y = 390 if quiz else 440
 
 
 func show_end(state: Dictionary, summary: Dictionary) -> void:
 	_modal.show()
+	_set_quiz_layout(false)
 	_hover.hide()
 	hide_coach()
 	var outcome: String = state["outcome"]
@@ -707,8 +838,10 @@ func reveal_attitude(choice: String) -> void:
 	for option: String in q["counts"]:
 		var share := float(q["counts"][option]) / float(q["valid_n"])
 		var bar := "█".repeat(roundi(share * 60.0))
-		var mark := "  ◀ you" if option == choice else ""
-		t += "[font_size=13]%s[/font_size]\n[color=%s]%s[/color] %d%%%s\n" % [option, "#ffc970" if option == choice else "#8fe3a4", bar, roundi(share * 100.0), mark]
+		var mark := "  [b]◀ you[/b]" if option == choice else ""
+		t += "[color=%s]%s[/color] %d%%  %s%s\n" % ["#ffc970" if option == choice else "#8fe3a4", bar, roundi(share * 100.0), option, mark]
+	# The answer buttons are gone, so give the results the full card height.
+	_modal_body.size.y = 460
 	_modal_body.text = t
 	_set_options([])
 	_modal_continue.show()
@@ -722,16 +855,17 @@ func is_modal_open() -> bool:
 	return _modal.visible
 
 
-func _set_options(options: Array, attitude: bool = false) -> void:
+func _set_options(options: Array, attitude: bool = false, quiz: bool = false) -> void:
 	for child in _modal_options.get_children():
 		_modal_options.remove_child(child)
 		child.queue_free()
 	for i in range(options.size()):
 		var b := Button.new()
 		b.text = options[i]
-		b.custom_minimum_size = Vector2(760, 38 if attitude else 42)
+		b.custom_minimum_size = Vector2(760, 48 if quiz else (38 if attitude else 42))
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.add_theme_font_size_override("font_size", 16)
-		_style_button(b, i == 0 and options.size() == 2 and not attitude)
+		_style_button(b, i == 0 and options.size() == 2 and not attitude and not quiz)
 		var index := i
 		var text: String = options[i]
 		if attitude:

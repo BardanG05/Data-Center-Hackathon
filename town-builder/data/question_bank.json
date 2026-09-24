@@ -1,0 +1,592 @@
+{
+  "schema_version": 1,
+  "interval_seconds": 60.0,
+  "opening_question_id": "ireland_dc_electricity_2025",
+  "questions": [
+    {
+      "id": "ireland_dc_electricity_2025",
+      "type": "MULTIPLE_CHOICE",
+      "category": "REAL_DATA",
+      "question": "Approximately what share of Ireland's total electricity consumption came from data centres in the supplied 2025 dataset?",
+      "options": [
+        "5%",
+        "12%",
+        "23%",
+        "40%"
+      ],
+      "correct_answer": "23%",
+      "explanation": "The supplied dataset records 7,663 GWh of data-centre consumption out of 32,986 GWh total electricity consumption, which is about 23.2%.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - CSO Data Centre Electricity Consumption",
+      "survey_compare": {
+        "question": "belief_significant_share",
+        "options": [
+          "True"
+        ],
+        "text": "believed data centres use a 'significant proportion' of Ireland's electricity"
+      }
+    },
+    {
+      "id": "irish_dc_fossil_fuels",
+      "type": "MYTH_OR_FACT",
+      "category": "REAL_DATA",
+      "question": "All data centres in Ireland run on fossil fuels.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Myth",
+      "explanation": "EirGrid figures in the supplied dataset show renewables met about 40.7% of Ireland's electricity demand in 2025, up from 27.3% in 2015. Grid-connected data centres draw on that mix, so 'all fossil fuels' is not supported, although most of the remainder is still fossil-fuelled.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - EirGrid RES KPI",
+      "survey_compare": {
+        "question": "belief_fossil_fuels",
+        "options": [
+          "True"
+        ],
+        "text": "believed this was a fact"
+      }
+    },
+    {
+      "id": "hyperscale_water",
+      "type": "MULTIPLE_CHOICE",
+      "category": "REAL_DATA",
+      "question": "According to the supplied KPMG data, approximately how much water is estimated to be used annually by the modelled hyperscale data centre?",
+      "options": [
+        "49 million litres",
+        "150 million litres",
+        "713 million litres",
+        "6.1 billion litres"
+      ],
+      "correct_answer": "713 million litres",
+      "explanation": "The supplied model estimates annual water consumption of 713 megalitres, equal to 713 million litres.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - KPMG P87 (2025)"
+    },
+    {
+      "id": "hyperscale_vs_enterprise_water",
+      "type": "HIGHER_OR_LOWER",
+      "category": "COMPARISON",
+      "question": "Does the modelled hyperscale data centre use more or less than 10 times as much water as the enterprise example?",
+      "options": [
+        "More than 10x",
+        "Less than 10x"
+      ],
+      "correct_answer": "More than 10x",
+      "explanation": "The supplied estimates are 713 ML per year for hyperscale and 8 ML for enterprise - roughly 89 times as much.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - KPMG P87 (2025)"
+    },
+    {
+      "id": "highest_dc_resource_use",
+      "type": "MULTIPLE_CHOICE",
+      "category": "REAL_DATA",
+      "question": "Which data-centre type has the highest energy and water use in the supplied model?",
+      "options": [
+        "Enterprise",
+        "Retail Colocation",
+        "Small-scale Wholesale",
+        "Hyperscale"
+      ],
+      "correct_answer": "Hyperscale",
+      "explanation": "The hyperscale example is much larger, with 6,133 GWh of annual energy use and 713 ML of annual water use in the supplied model.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - KPMG P87 (2025)"
+    },
+    {
+      "id": "irish_pue",
+      "type": "MULTIPLE_CHOICE",
+      "category": "EFFICIENCY",
+      "question": "What was Ireland's average Power Usage Effectiveness (PUE) in the supplied 2025 European data?",
+      "options": [
+        "0.64",
+        "1.18",
+        "1.66",
+        "2.00"
+      ],
+      "correct_answer": "1.18",
+      "explanation": "Ireland is listed with an average PUE of 1.18. PUE compares total facility energy with the energy used by computing equipment. Generally, closer to 1 means less overhead.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - EU Report P86 T25"
+    },
+    {
+      "id": "what_is_pue",
+      "type": "MULTIPLE_CHOICE",
+      "category": "BASICS",
+      "question": "What does PUE measure in a data centre?",
+      "options": [
+        "Public support for data centres",
+        "Total facility energy compared with IT equipment energy",
+        "Internet speed",
+        "Water stored at the facility"
+      ],
+      "correct_answer": "Total facility energy compared with IT equipment energy",
+      "explanation": "Power Usage Effectiveness compares all energy entering a data centre with the energy actually used by its IT equipment.",
+      "source_type": "GENERAL",
+      "source_label": "Data-centre efficiency terminology"
+    },
+    {
+      "id": "what_is_wue",
+      "type": "MULTIPLE_CHOICE",
+      "category": "BASICS",
+      "question": "In data-centre sustainability, what does WUE stand for?",
+      "options": [
+        "Wind Utilisation Efficiency",
+        "Water Usage Effectiveness",
+        "Web Usage Estimate",
+        "Worldwide Utility Expense"
+      ],
+      "correct_answer": "Water Usage Effectiveness",
+      "explanation": "WUE is used to describe water consumption relative to the computing energy used by a data centre.",
+      "source_type": "GENERAL",
+      "source_label": "Data-centre efficiency terminology"
+    },
+    {
+      "id": "aws_wue",
+      "type": "MULTIPLE_CHOICE",
+      "category": "COMPANY_COMPARISON",
+      "question": "What global data-centre Water Usage Effectiveness did AWS report for 2024?",
+      "options": [
+        "0.015 L/kWh",
+        "0.15 L/kWh",
+        "1.5 L/kWh",
+        "15 L/kWh"
+      ],
+      "correct_answer": "0.15 L/kWh",
+      "explanation": "AWS reported a global data-centre WUE of 0.15 litres per kilowatt-hour in 2024.",
+      "source_type": "EXTERNAL",
+      "source_label": "Amazon 2024 Sustainability Report"
+    },
+    {
+      "id": "ai_prompt_bottle_myth",
+      "type": "MYTH_OR_FACT",
+      "category": "AI_MYTH",
+      "question": "Every normal AI text prompt consumes an entire bottle of water.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Myth",
+      "explanation": "There is no universal amount for every AI request. Google's 2025 measurement estimated about 0.26 mL for its median Gemini Apps text prompt - roughly a few drops. Different models and infrastructure can have very different footprints.",
+      "source_type": "EXTERNAL",
+      "source_label": "Google - Measuring the environmental impact of AI inference, 2025"
+    },
+    {
+      "id": "gemini_water_visual",
+      "type": "MULTIPLE_CHOICE",
+      "category": "AI_MYTH",
+      "question": "Google estimated that the water associated with its median Gemini Apps text prompt was closest to which of these?",
+      "options": [
+        "A bathtub",
+        "A glass of water",
+        "A teaspoon",
+        "A few drops"
+      ],
+      "correct_answer": "A few drops",
+      "explanation": "Google's point-in-time 2025 estimate was about 0.26 mL of water for its median Gemini Apps text prompt. This should not be treated as a universal figure for every AI system.",
+      "source_type": "EXTERNAL",
+      "source_label": "Google - Measuring the environmental impact of AI inference, 2025"
+    },
+    {
+      "id": "chatgpt_water_estimate",
+      "type": "MULTIPLE_CHOICE",
+      "category": "AI_MYTH",
+      "question": "A published OpenAI estimate says an average ChatGPT query uses roughly how much water?",
+      "options": [
+        "0.32 millilitres",
+        "32 millilitres",
+        "320 millilitres",
+        "3.2 litres"
+      ],
+      "correct_answer": "0.32 millilitres",
+      "explanation": "Sam Altman stated an average ChatGPT query uses about 0.000085 gallons, approximately 0.32 mL. Actual footprints vary by workload and infrastructure.",
+      "source_type": "EXTERNAL",
+      "source_label": "Sam Altman - The Gentle Singularity"
+    },
+    {
+      "id": "all_dc_need_fresh_water",
+      "type": "MYTH_OR_FACT",
+      "category": "WATER_MYTH",
+      "question": "Every data centre has to continuously consume fresh water to cool its servers.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Myth",
+      "explanation": "Cooling systems vary. Some use evaporative water cooling, while others can use closed-loop or other designs that greatly reduce or avoid ongoing cooling-water consumption.",
+      "source_type": "EXTERNAL",
+      "source_label": "Microsoft sustainable datacentre cooling information"
+    },
+    {
+      "id": "microsoft_zero_water_cooling",
+      "type": "MYTH_OR_FACT",
+      "category": "WATER_MYTH",
+      "question": "Microsoft has introduced a data-centre design that can operate with zero water consumption for cooling.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Fact",
+      "explanation": "Microsoft says its newer closed-loop design avoids water evaporation for cooling. Water can still be used elsewhere at the facility, such as kitchens and bathrooms.",
+      "source_type": "EXTERNAL",
+      "source_label": "Microsoft - Sustainable by Design datacentres"
+    },
+    {
+      "id": "microsoft_water_avoided",
+      "type": "MULTIPLE_CHOICE",
+      "category": "COMPANY_COMPARISON",
+      "question": "Microsoft says its newer zero-water cooling design can avoid more than how much water per data centre each year?",
+      "options": [
+        "125,000 litres",
+        "1.25 million litres",
+        "12.5 million litres",
+        "125 million litres"
+      ],
+      "correct_answer": "125 million litres",
+      "explanation": "Microsoft says the design can avoid the need for more than 125 million litres of cooling water per data centre annually.",
+      "source_type": "EXTERNAL",
+      "source_label": "Microsoft - Sustainable by Design datacentres"
+    },
+    {
+      "id": "agriculture_water_share",
+      "type": "MULTIPLE_CHOICE",
+      "category": "WORLD_COMPARISON",
+      "question": "Approximately what percentage of global freshwater withdrawals are used by agriculture?",
+      "options": [
+        "7%",
+        "25%",
+        "50%",
+        "72%"
+      ],
+      "correct_answer": "72%",
+      "explanation": "The UN Food and Agriculture Organization reports that agriculture accounts for about 72% of global freshwater withdrawals.",
+      "source_type": "EXTERNAL",
+      "source_label": "United Nations FAO"
+    },
+    {
+      "id": "agriculture_vs_industry_water",
+      "type": "HIGHER_OR_LOWER",
+      "category": "WORLD_COMPARISON",
+      "question": "Which accounts for the larger share of global freshwater withdrawals: agriculture or industry?",
+      "options": [
+        "Agriculture",
+        "Industry"
+      ],
+      "correct_answer": "Agriculture",
+      "explanation": "FAO reports roughly 72% for agriculture and around 15% for industry globally.",
+      "source_type": "EXTERNAL",
+      "source_label": "United Nations FAO"
+    },
+    {
+      "id": "tsmc_vs_hyperscale_water",
+      "type": "HIGHER_OR_LOWER",
+      "category": "COMPANY_COMPARISON",
+      "question": "Which reported number is larger: TSMC's total 2024 water usage or the annual water estimate for the supplied hyperscale data-centre model?",
+      "options": [
+        "TSMC's total water usage",
+        "The hyperscale data-centre model"
+      ],
+      "correct_answer": "TSMC's total water usage",
+      "explanation": "TSMC reported total water usage of 129 million cubic metres in 2024 - about 129 billion litres. The supplied hyperscale model estimates 713 million litres annually. These are different organisations and reporting boundaries, so this is a scale comparison rather than a like-for-like environmental comparison.",
+      "source_type": "MIXED",
+      "source_label": "TSMC 2024 Annual Report + BCP Data.xlsx KPMG P87"
+    },
+    {
+      "id": "intel_water_withdrawal",
+      "type": "MULTIPLE_CHOICE",
+      "category": "COMPANY_COMPARISON",
+      "question": "Approximately how much freshwater did Intel report withdrawing globally in 2024?",
+      "options": [
+        "420 million litres",
+        "4.2 billion litres",
+        "41.9 billion litres",
+        "419 billion litres"
+      ],
+      "correct_answer": "41.9 billion litres",
+      "explanation": "Intel reported freshwater withdrawals of 11.1 billion gallons, approximately 41.9 billion litres, in 2024.",
+      "source_type": "EXTERNAL",
+      "source_label": "Intel 2024-25 Corporate Responsibility Report"
+    },
+    {
+      "id": "withdrawal_equals_consumption",
+      "type": "MYTH_OR_FACT",
+      "category": "WATER_MYTH",
+      "question": "Water withdrawal and water consumption mean exactly the same thing.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Myth",
+      "explanation": "Withdrawal measures water taken from a source. Consumption generally refers to the portion not returned to the same water system. Mixing these measurements can make comparisons misleading.",
+      "source_type": "GENERAL",
+      "source_label": "Water accounting terminology"
+    },
+    {
+      "id": "intel_returned_water",
+      "type": "MYTH_OR_FACT",
+      "category": "COMPANY_COMPARISON",
+      "question": "Intel says most of the water used at its sites is sent back to municipal treatment operations.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Fact",
+      "explanation": "Intel reported that approximately 78% of the water used at its sites in 2024 was sent back to municipal treatment operations.",
+      "source_type": "EXTERNAL",
+      "source_label": "Intel 2024-25 Corporate Responsibility Report"
+    },
+    {
+      "id": "coca_cola_water_ratio",
+      "type": "HIGHER_OR_LOWER",
+      "category": "COMPANY_COMPARISON",
+      "question": "In 2024, did Coca-Cola report using more or less than one litre of water for every litre of beverage produced across its system?",
+      "options": [
+        "More than 1 litre",
+        "Less than 1 litre"
+      ],
+      "correct_answer": "More than 1 litre",
+      "explanation": "Coca-Cola reported a 2024 system-wide water-use ratio of 1.78 litres of water used per litre of beverage produced.",
+      "source_type": "EXTERNAL",
+      "source_label": "The Coca-Cola Company 2024 Environmental Update"
+    },
+    {
+      "id": "cloud_no_infrastructure",
+      "type": "MYTH_OR_FACT",
+      "category": "TECH_MYTH",
+      "question": "Files stored 'in the cloud' exist without physical computer infrastructure.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Myth",
+      "explanation": "Cloud services ultimately depend on physical servers, storage systems, networking equipment and data centres.",
+      "source_type": "GENERAL",
+      "source_label": "Cloud computing fundamentals"
+    },
+    {
+      "id": "electricity_becomes_heat",
+      "type": "MYTH_OR_FACT",
+      "category": "TECH_MYTH",
+      "question": "Much of the electricity used by computer servers ultimately becomes heat.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Fact",
+      "explanation": "Servers use electricity to perform computation, and most of that electrical energy eventually becomes heat that the cooling system must remove.",
+      "source_type": "GENERAL",
+      "source_label": "Computing and thermodynamics fundamentals"
+    },
+    {
+      "id": "waste_heat_useful",
+      "type": "MYTH_OR_FACT",
+      "category": "SUSTAINABILITY",
+      "question": "Waste heat from a data centre can potentially be reused to heat nearby buildings.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Fact",
+      "explanation": "Data-centre waste heat can potentially be recovered and used through district-heating or other heat-reuse systems instead of simply being released.",
+      "source_type": "GENERAL",
+      "source_label": "Data-centre heat recovery",
+      "survey_compare": {
+        "question": "belief_waste_heat",
+        "options": [
+          "True"
+        ],
+        "text": "believed data centres can redirect waste heat to nearby homes and businesses"
+      }
+    },
+    {
+      "id": "renewable_support",
+      "type": "MULTIPLE_CHOICE",
+      "category": "PUBLIC_OPINION",
+      "question": "In one supplied 2025 public-opinion dataset, what percentage agreed or strongly agreed that new data centres should only be constructed if powered by renewable energy?",
+      "options": [
+        "36%",
+        "52%",
+        "76%",
+        "91%"
+      ],
+      "correct_answer": "76%",
+      "explanation": "36% strongly agreed and 40% agreed, giving a combined 76% among respondents to that survey.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - Beyond Fossil Fuels Slide 37 (2025)"
+    },
+    {
+      "id": "energy_shortage_priority",
+      "type": "MULTIPLE_CHOICE",
+      "category": "PUBLIC_OPINION",
+      "question": "In one supplied 2025 survey, which sector was most frequently selected as the top priority during an energy shortage?",
+      "options": [
+        "Data centres",
+        "Housing",
+        "Agriculture and food supply",
+        "Public healthcare"
+      ],
+      "correct_answer": "Public healthcare",
+      "explanation": "Public healthcare was selected as the top priority by 39% of respondents. Data centres were selected as the top priority by only 4%.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - Beyond Fossil Fuels Slide 47 (2025)"
+    },
+    {
+      "id": "environmental_disclosure",
+      "type": "MULTIPLE_CHOICE",
+      "category": "PUBLIC_OPINION",
+      "question": "In one supplied 2025 dataset, approximately what percentage agreed or strongly agreed that data-centre companies should disclose environmental impact assessments?",
+      "options": [
+        "35%",
+        "56%",
+        "70%",
+        "85%"
+      ],
+      "correct_answer": "85%",
+      "explanation": "45% strongly agreed and 40% agreed, giving a combined 85% among respondents.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - Beyond Fossil Fuels Slide 59 (2025)"
+    },
+    {
+      "id": "survey_national_support",
+      "type": "MULTIPLE_CHOICE",
+      "category": "SURVEY_SAYS",
+      "question": "Among the supplied hackathon survey respondents with a valid answer, roughly how many were supportive of sustainable data centres in Ireland?",
+      "options": [
+        "22%",
+        "36%",
+        "56%",
+        "78%"
+      ],
+      "correct_answer": "56%",
+      "explanation": "Approximately 55.6% of valid responses were somewhat or strongly supportive. This describes this survey sample and should not automatically be treated as representative of everyone in Ireland.",
+      "source_type": "SUPPLIED_SURVEY",
+      "source_label": "Social Acceptance of Sustainable Data Centres in Ireland survey"
+    },
+    {
+      "id": "survey_nearby_acceptance",
+      "type": "MULTIPLE_CHOICE",
+      "category": "SURVEY_SAYS",
+      "question": "Among the supplied survey respondents, roughly how many said a sustainable data centre within 5 km of their home would be acceptable?",
+      "options": [
+        "15%",
+        "30%",
+        "56%",
+        "70%"
+      ],
+      "correct_answer": "30%",
+      "explanation": "About 30.3% considered it acceptable, while roughly 35.4% considered it unacceptable and 34.4% were neutral. These results describe this specific survey sample.",
+      "source_type": "SUPPLIED_SURVEY",
+      "source_label": "Social Acceptance of Sustainable Data Centres in Ireland survey"
+    },
+    {
+      "id": "survey_heat_reuse",
+      "type": "MULTIPLE_CHOICE",
+      "category": "SURVEY_SAYS",
+      "question": "Which option was one of the most frequently selected measures for increasing acceptance of a sustainable data centre in the supplied survey?",
+      "options": [
+        "A larger car park",
+        "Waste heat reused for homes and businesses",
+        "More online advertising",
+        "Free mobile phones"
+      ],
+      "correct_answer": "Waste heat reused for homes and businesses",
+      "explanation": "Waste-heat reuse was selected by about 54% of respondents in that question, making it one of the most frequently selected options. The survey did not always enforce the requested number of selections, so this should be described as selection frequency rather than a perfect ranking.",
+      "source_type": "SUPPLIED_SURVEY",
+      "source_label": "Social Acceptance of Sustainable Data Centres in Ireland survey"
+    },
+    {
+      "id": "local_dc_acceptance_other_survey",
+      "type": "MULTIPLE_CHOICE",
+      "category": "SURVEY_SAYS",
+      "question": "A separate supplied 2024 survey reported what percentage of Irish respondents were willing to have a data centre somewhere in their local community?",
+      "options": [
+        "24%",
+        "42%",
+        "69%",
+        "96%"
+      ],
+      "correct_answer": "69%",
+      "explanation": "The supplied CyrusOne dataset reports 69% 'Yes (Net)' for Ireland. This differs from the hackathon survey, showing how question wording and different samples can produce different results.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - CyrusOne 05 G2 (2024)"
+    },
+    {
+      "id": "ai_only_reason_datacentres",
+      "type": "MYTH_OR_FACT",
+      "category": "AI_MYTH",
+      "question": "AI is the only reason modern data centres exist.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Myth",
+      "explanation": "Data centres also support websites, streaming, cloud storage, banking, online business systems, search engines, communications and many other digital services. AI is one rapidly growing category of workload.",
+      "source_type": "GENERAL",
+      "source_label": "Data-centre fundamentals"
+    },
+    {
+      "id": "water_use_automatically_bad",
+      "type": "MULTIPLE_CHOICE",
+      "category": "MYTHBUSTER",
+      "question": "If two data centres use exactly the same amount of water, do they necessarily have the same environmental impact?",
+      "options": [
+        "Yes, always",
+        "No - location, water source and local scarcity matter",
+        "Yes, if they use the same servers",
+        "Only if they are the same size"
+      ],
+      "correct_answer": "No - location, water source and local scarcity matter",
+      "explanation": "The same quantity of water can have very different consequences depending on where it is used, whether the area is water-stressed, the source of the water and how much is reused or returned.",
+      "source_type": "GENERAL",
+      "source_label": "Water sustainability principles"
+    },
+    {
+      "id": "ai_environment_factors",
+      "type": "MULTIPLE_CHOICE",
+      "category": "AI_MYTH",
+      "question": "Which of these can change the environmental footprint of an AI request?",
+      "options": [
+        "The amount of computation",
+        "The efficiency of the hardware",
+        "The electricity and cooling systems",
+        "All of the above"
+      ],
+      "correct_answer": "All of the above",
+      "explanation": "AI requests do not all have identical footprints. Model size, workload, hardware efficiency, electricity supply, utilisation and cooling infrastructure can all affect resource use.",
+      "source_type": "GENERAL",
+      "source_label": "AI infrastructure fundamentals"
+    },
+    {
+      "id": "small_prompt_scale",
+      "type": "MULTIPLE_CHOICE",
+      "category": "AI_MYTH",
+      "question": "Why can a tiny resource cost per AI prompt still matter environmentally?",
+      "options": [
+        "Because AI computers never turn off",
+        "Because billions of requests can multiply small amounts into large totals",
+        "Because every prompt trains a completely new AI model",
+        "Because each prompt builds a new server"
+      ],
+      "correct_answer": "Because billions of requests can multiply small amounts into large totals",
+      "explanation": "An individual request can have a very small footprint while infrastructure operating at enormous scale can still create substantial total electricity and water demand.",
+      "source_type": "GENERAL",
+      "source_label": "Scale effect"
+    },
+    {
+      "id": "data_centre_definition",
+      "type": "MULTIPLE_CHOICE",
+      "category": "BASICS",
+      "question": "Which description best explains a data centre?",
+      "options": [
+        "A building containing servers, storage and networking equipment",
+        "A call centre where customer information is written down",
+        "A completely virtual place with no physical equipment",
+        "A building used only for developing software"
+      ],
+      "correct_answer": "A building containing servers, storage and networking equipment",
+      "explanation": "A data centre is physical infrastructure containing computing systems such as servers, storage devices and networking equipment.",
+      "source_type": "GENERAL",
+      "source_label": "Data-centre fundamentals"
+    }
+  ]
+}

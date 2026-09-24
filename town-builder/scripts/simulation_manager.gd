@@ -94,28 +94,42 @@ func step_month() -> void:
 	month_advanced.emit(state["year"], state["month"])
 
 
+## Demo shortcut: move the calendar and let acceptance settle at its current target.
+func jump_to(year: int, month: int) -> void:
+	state["year"] = year
+	state["month"] = month
+	state["months_elapsed"] = (year - int(_data.scenario["start_year"])) * 12 + month - 1
+	_accumulator = 0.0
+	_recalculate()
+	state["coverage_total"] = float(state["months_elapsed"]) * 0.8
+	state["acceptance"] = float(state["acceptance_target"])
+	_emit()
+
+
 func can_afford(cost: float) -> bool:
 	return not state.is_empty() and cost >= 0.0 and float(state["money"]) >= cost
 
 
-## Build cost after policies (the renewable rule bundles a renewable deal).
-func build_cost(id: String) -> float:
+## Build cost after policies and an optional site multiplier.
+## With no site multiplier this returns the building's baseline cost.
+func build_cost(id: String, site_multiplier: float = 1.0) -> float:
 	var def: Dictionary = _data.buildings[id]
-	var cost := float(def["cost"])
+	var cost := float(def["cost"]) * maxf(site_multiplier, 0.0)
 	if def["category"] == "data_centre" and has_flag("renewable_rule"):
 		cost *= 1.25
 	return cost
 
 
 ## greenfield_tiles: footprint tiles on open land, which cost acceptance for data centres.
-func add_building(id: String, cell: Vector2i, greenfield_tiles: int = 0) -> Dictionary:
+func add_building(id: String, cell: Vector2i, greenfield_tiles: int = 0, site_multiplier: float = 1.0) -> Dictionary:
 	var def: Dictionary = _data.buildings[id]
 	var size := Vector2i(int(def["footprint"][0]), int(def["footprint"][1]))
-	var record := {"uid": _next_uid, "id": id, "cell": cell, "size": size, "upgrades": [], "greenfield_tiles": greenfield_tiles}
+	var final_cost := build_cost(id, site_multiplier)
+	var record := {"uid": _next_uid, "id": id, "cell": cell, "size": size, "upgrades": [], "greenfield_tiles": greenfield_tiles, "site_multiplier": site_multiplier, "build_cost": final_cost}
 	if def["category"] == "data_centre" and has_flag("renewable_rule"):
 		record["upgrades"].append("renewable")
 	_next_uid += 1
-	state["money"] -= build_cost(id)
+	state["money"] -= final_cost
 	placed.append(record)
 	_recalculate()
 	_emit()
@@ -171,6 +185,31 @@ func apply_effect(effect: Dictionary) -> void:
 		state["acceptance"] = clampf(float(state["acceptance"]) + float(effect["acceptance"]), 0.0, 100.0)
 	_recalculate()
 	_emit()
+
+
+## Apply the budget and public-acceptance consequence of a recurring quiz.
+## The money percentage uses gross recurring income so a struggling town never
+## receives a reward just because its net income is negative.
+func apply_quiz_result(correct: bool) -> Dictionary:
+	var s: Dictionary = _data.scenario
+	var monthly_income := maxf(float(state.get("town_income", 0.0)) + float(state.get("revenue", 0.0)), 0.0)
+	var fraction_key := "quiz_correct_income_fraction" if correct else "quiz_wrong_income_fraction"
+	var income_fraction := maxf(float(s.get(fraction_key, 0.0)), 0.0)
+	var money_delta := monthly_income * income_fraction * (1.0 if correct else -1.0)
+	var acceptance_key := "quiz_correct_acceptance" if correct else "quiz_wrong_acceptance"
+	var acceptance_delta := float(s.get(acceptance_key, 0.0))
+	state["money"] += money_delta
+	state["acceptance_modifier"] += acceptance_delta
+	state["acceptance"] = clampf(float(state["acceptance"]) + acceptance_delta, 0.0, 100.0)
+	_recalculate()
+	_emit()
+	return {
+		"correct": correct,
+		"monthly_income": monthly_income,
+		"income_fraction": income_fraction,
+		"money_delta": money_delta,
+		"acceptance_delta": acceptance_delta,
+	}
 
 
 ## Residents objecting to noise/visual impact, optionally with a hypothetical

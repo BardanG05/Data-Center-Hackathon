@@ -20,10 +20,16 @@ var active_event: Dictionary = {}
 var fired_events: Dictionary = {}
 var _speed_before_pause := 1.0
 var tutorial: Tutorial
+var _quiz_elapsed := 0.0
+var _event_answered := false
+var _restart_speed := 1.0
+var _restart_was_paused := false
 
 
 func _ready() -> void:
-	ui.restart_requested.connect(func() -> void: get_tree().reload_current_scene())
+	ui.restart_requested.connect(_on_restart_requested)
+	ui.restart_confirmed.connect(_on_restart_confirmed)
+	ui.restart_cancelled.connect(_on_restart_cancelled)
 	if not data.load_all():
 		ui.show_message("Cannot load game data: " + data.error_message, true)
 		push_error(data.error_message)
@@ -43,6 +49,7 @@ func _ready() -> void:
 	ui.upgrade_requested.connect(_on_upgrade)
 	ui.demolish_requested.connect(_on_demolish)
 	ui.speed_requested.connect(set_speed)
+	ui.press_conference_requested.connect(_on_press_conference_requested)
 	ui.event_option_chosen.connect(_on_event_option)
 	ui.event_closed.connect(_on_event_closed)
 	ui.attitude_chosen.connect(func(option: String) -> void: ui.reveal_attitude(option))
@@ -61,8 +68,78 @@ func _ready() -> void:
 
 ## Starts the clock after the welcome screen or tutorial.
 func _begin_play() -> void:
+	_quiz_elapsed = 0.0
 	set_speed(1.0)
 	_check_events()
+
+
+func _on_restart_requested() -> void:
+	if ui.is_modal_open() or simulation.state.get("finished", false):
+		return
+	_restart_speed = simulation.speed
+	_restart_was_paused = simulation.paused
+	simulation.paused = true
+	ui.set_speed(0.0)
+	ui.show_restart_confirmation()
+
+
+func _on_restart_confirmed() -> void:
+	get_tree().reload_current_scene()
+
+
+func _on_restart_cancelled() -> void:
+	ui.hide_restart_confirmation()
+	set_speed(0.0 if _restart_was_paused else _restart_speed)
+
+
+func _process(delta: float) -> void:
+	_advance_quiz_timer(delta)
+
+
+## Count real seconds of active play, independently of the simulation speed.
+func _advance_quiz_timer(delta: float) -> void:
+	if delta <= 0.0 or not is_finite(delta) or simulation.state.is_empty():
+		return
+	if simulation.paused or simulation.state["finished"] or tutorial == null or tutorial.active:
+		return
+	if ui.is_modal_open() or not active_event.is_empty() or data.quiz_bank.remaining_count() == 0:
+		return
+	# A scheduled policy takes precedence; never stack two popups.
+	_check_events()
+	if not active_event.is_empty():
+		return
+	_quiz_elapsed += delta
+	if _quiz_elapsed < data.quiz_bank.interval_seconds:
+		return
+	var question: Dictionary = data.quiz_bank.draw()
+	if question.is_empty():
+		return
+	_quiz_elapsed = 0.0
+	question["kind"] = "quiz"
+	question["quiz_source"] = "mandatory"
+	_open_event(question)
+
+
+func _open_event(event: Dictionary) -> void:
+	active_event = event
+	_event_answered = false
+	simulation.paused = true
+	ui.set_press_conference_available(data.quiz_bank.remaining_count())
+	ui.show_event(event)
+
+
+func _on_press_conference_requested() -> void:
+	if data.quiz_bank.remaining_count() == 0 or simulation.state.get("finished", false) or tutorial == null or tutorial.active:
+		return
+	if ui.is_modal_open() or not active_event.is_empty():
+		return
+	var question: Dictionary = data.quiz_bank.draw()
+	if question.is_empty():
+		return
+	_quiz_elapsed = 0.0
+	question["kind"] = "quiz"
+	question["quiz_source"] = "optional"
+	_open_event(question)
 
 
 func set_speed(speed: float) -> void:
@@ -85,7 +162,7 @@ func _on_month(_year: int, _month: int) -> void:
 
 
 func _check_events() -> void:
-	if tutorial.active or not active_event.is_empty():
+	if tutorial.active or not active_event.is_empty() or simulation.state.get("finished", false):
 		return
 	var state := simulation.state
 	for event: Dictionary in data.events:
@@ -93,14 +170,14 @@ func _check_events() -> void:
 			continue
 		if int(state["year"]) > int(event["year"]) or (int(state["year"]) == int(event["year"]) and int(state["month"]) >= int(event["month"])):
 			fired_events[event["id"]] = true
-			active_event = event
-			simulation.paused = true
-			ui.show_event(event)
+			_open_event(event)
 			return
 
 
 func _on_event_option(index: int) -> void:
-	if active_event.is_empty():
+	if active_event.is_empty() or _event_answered:
+		return
+	if index < 0 or index >= active_event.get("options", []).size():
 		return
 	if active_event.get("kind") == "welcome":
 		active_event = {}
@@ -110,9 +187,15 @@ func _on_event_option(index: int) -> void:
 		else:
 			_begin_play()
 		return
-	var effects: Array = active_event.get("effects", [])
-	if index < effects.size():
-		simulation.apply_effect(effects[index])
+	_event_answered = true
+	if active_event.get("kind") == "quiz":
+		var options: Array = active_event.get("options", [])
+		var correct_index: int = options.find(active_event.get("correct_answer", ""))
+		active_event["quiz_result"] = simulation.apply_quiz_result(index == correct_index)
+	else:
+		var effects: Array = active_event.get("effects", [])
+		if index < effects.size():
+			simulation.apply_effect(effects[index])
 	ui.reveal_event(active_event, index)
 
 
@@ -120,7 +203,10 @@ func _on_event_closed() -> void:
 	if simulation.state.get("finished", false):
 		get_tree().reload_current_scene()
 		return
+	if active_event.is_empty() or not _event_answered:
+		return
 	active_event = {}
+	_event_answered = false
 	ui.hide_modal()
 	simulation.paused = false
 	set_speed(_speed_before_pause)
@@ -152,7 +238,9 @@ func _on_cell_hovered(cell: Vector2i) -> void:
 	ui.set_preview(preview)
 	var text: String = preview["problem"]
 	if preview["ok"]:
-		text = "Click to build · %s" % GameData.money(preview["cost"])
+		var site_type := String(preview.get("site_type", "mixed site"))
+		var site_name := String(TownMap.TERRAIN_NAMES.get(site_type, site_type.capitalize()))
+		text = "Click to build · %s · %s" % [GameData.money(preview["cost"]), site_name]
 		if preview.has("new_objectors"):
 			text += " · about %s would object" % GameData.thousands(preview["new_objectors"])
 		if int(preview.get("greenfield_tiles", 0)) > 0:
@@ -300,7 +388,42 @@ func summary() -> Dictionary:
 	return {"score": score, "grade": grade, "coverage": coverage}
 
 
+## Hidden demo shortcut (F9): skip the quiet early years and land in late 2022,
+## just before the renewable-rule decision, with demand starting to outgrow supply.
+func load_demo_state() -> void:
+	if simulation.state.get("finished", false):
+		return
+	if tutorial.active:
+		tutorial.finish()
+	if not active_event.is_empty():
+		active_event = {}
+		_event_answered = false
+		ui.hide_modal()
+	_cancel()
+	simulation.state["money"] = 20000.0
+	# Top up to 45 compute (a colocation plus an enterprise), keeping anything the
+	# presenter already built, so demand (49 in Oct 2022) is just out of reach.
+	for id: String in ["colocation", "enterprise"]:
+		if float(simulation.state["compute_capacity"]) + float(data.buildings[id]["compute_capacity"]) <= 45.0:
+			var cell := building_manager.suggest_site(id)
+			if cell != TownMap.NO_CELL:
+				building_manager.try_build(cell, id)
+	var solar := building_manager.suggest_site("solar_farm")
+	if solar != TownMap.NO_CELL:
+		building_manager.try_build(solar, "solar_farm")
+	simulation.jump_to(2022, 10)
+	simulation.state["money"] = 2600.0
+	simulation.state_changed.emit(simulation.state.duplicate(true))
+	_quiz_elapsed = 0.0
+	ui.show_message("Demo: jumped to October 2022. Demand is catching up with your data centres.")
+	set_speed(1.0)
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F9:
+		load_demo_state()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ui_cancel"):
 		_cancel()
 		get_viewport().set_input_as_handled()

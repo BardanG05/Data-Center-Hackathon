@@ -13,11 +13,11 @@ const SATELLITE_PATH := "res://assets/map/satellite.jpg"
 const BUILDING_SCENE: PackedScene = preload("res://scenes/building.tscn")
 const TERRAIN_CODES := {
 	"r": "residential", "c": "town_centre", "o": "open", "i": "industrial",
-	"g": "green", "w": "water", "h": "hospital", "s": "sea"}
+	"g": "green", "w": "water", "s": "sea"}
 const TERRAIN_NAMES := {
 	"residential": "Homes", "town_centre": "Shops & offices", "open": "Open land",
 	"industrial": "Industrial estate", "green": "Heath & parks (protected)",
-	"water": "River & lakes", "hospital": "Hospital", "sea": "Poole Bay"}
+	"water": "River & lakes", "sea": "Poole Bay"}
 const BUILDABLE_TINT := {
 	"open": Color(0.72, 0.93, 0.45, 0.20), "industrial": Color(0.70, 0.78, 0.95, 0.26),
 	"town_centre": Color(1.0, 0.78, 0.45, 0.20)}
@@ -270,10 +270,6 @@ func _draw_cell(cell: Vector2i) -> void:
 			draw_rect(r, Color(0.95, 0.80, 0.62, 0.10))
 		"green":
 			draw_rect(r, Color(0.20, 0.55, 0.28, 0.30))
-		"hospital":
-			draw_rect(r, Color(0.95, 0.97, 1.0, 0.55))
-			draw_rect(Rect2(r.position + Vector2(16, 8), Vector2(8, 24)), Color("d9534f"))
-			draw_rect(Rect2(r.position + Vector2(8, 16), Vector2(24, 8)), Color("d9534f"))
 		"water":
 			draw_rect(r, Color(0.25, 0.55, 0.85, 0.35))
 		"sea":
