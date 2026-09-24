@@ -515,7 +515,11 @@ func _show_selected() -> void:
 	var ex: Dictionary = simulation.exposure_of(record)
 	t += "%d compute%s · earns %s/month\n" % [def["compute_capacity"], (" (throttled to %d%%)" % roundi(output * 100.0)) if output < 0.999 else "", GameData.money(float(def["revenue_per_month"]) * output)]
 	t += "Neighbours objecting: [color=#ffc970]%s[/color] of %s within earshot\n" % [GameData.thousands(ex["objectors"]), GameData.thousands(ex["exposed"])]
-	t += "\n[b]Upgrades[/b]\nEach upgrade wins over a share of this centre's objectors. The %% is how many survey respondents picked that condition in their top 3. %s %s" % [_tag("opinion"), _tag("assumption")]
+	t += "\n[b]Upgrades[/b]\nChoose a commitment based on its cost and real-world benefit. The public-opinion result is revealed after purchase. %s %s" % [_tag("opinion"), _tag("assumption")]
+	if not record["upgrades"].is_empty():
+		t += "\n\n[b]Revealed effects[/b]\n"
+		for upgrade_id: String in record["upgrades"]:
+			t += "✓ %s\n" % _upgrade_effect_summary(upgrade_id)
 	_info.text = t
 	_rebuild_actions(record, true)
 
@@ -534,6 +538,14 @@ func _building_summary(def: Dictionary) -> String:
 	return " · ".join(parts)
 
 
+func _upgrade_effect_summary(upgrade_id: String) -> String:
+	var up: Dictionary = data.upgrades[upgrade_id]
+	if upgrade_id == "renewable":
+		return "%s: grid draw halved." % up["name"]
+	return "%s: nearby objections reduced by %s%% after this commitment (survey signal, %s respondents)." % [
+		up["name"], data.facts.get("pct_" + upgrade_id, "—"), data.facts.get("top3_n", "the survey")]
+
+
 func _rebuild_actions(record: Dictionary, upgrades: bool) -> void:
 	var key := "%d:%s" % [record["uid"], ",".join(record["upgrades"])] if upgrades else "%d" % record["uid"]
 	if _actions.get_meta("key", "") == key:
@@ -548,7 +560,7 @@ func _rebuild_actions(record: Dictionary, upgrades: bool) -> void:
 			var up: Dictionary = data.upgrades[upgrade_id]
 			var owned: bool = upgrade_id in record["upgrades"]
 			var cost := simulation.upgrade_cost(record, upgrade_id)
-			var label := "✓ %s" % up["name"] if owned else "%s · %s · wins %s%%" % [up["name"], GameData.money(cost), data.facts["pct_" + upgrade_id]]
+			var label := "✓ %s" % up["name"] if owned else "%s · %s" % [up["name"], GameData.money(cost)]
 			var b := _action_button(label)
 			b.tooltip_text = up["summary"]
 			b.disabled = owned or float(_state.get("money", 0)) < cost

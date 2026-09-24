@@ -100,6 +100,8 @@ func _run() -> void:
 	game._cancel()
 	game._select(record["uid"])
 	_check(game.ui._actions.get_child_count() == 5, "Data centre panel lists 4 upgrades + decommission")
+	if before > 0.0:
+		_check(game.ui._info.text.contains("Revealed effects") and game.ui._info.text.contains(data.facts["pct_waste_heat"] + "%"), "Purchased upgrade reveals its survey-based acceptance effect")
 	await _screenshot("06-selected")
 	game._select(-1)
 
