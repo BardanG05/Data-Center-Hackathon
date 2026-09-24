@@ -27,7 +27,7 @@ func _run() -> void:
 	var interval: float = game.data.quiz_bank.interval_seconds
 	var total: int = game.data.quiz_bank.total_count()
 	_check(is_equal_approx(interval, 60.0), "Mandatory press conferences use a one-minute interval")
-	_check(total == 36, "All 36 supplied questions load into the game")
+	_check(total == 37, "All 37 questions (36 supplied + fossil-fuel myth) load into the game")
 	_check(game.active_event.get("id") == "welcome", "Welcome is the first modal")
 	game._advance_quiz_timer(interval * 100.0)
 	_check(game.data.quiz_bank.remaining_count() == total and is_zero_approx(game._quiz_elapsed), "Welcome time does not consume questions or timer")

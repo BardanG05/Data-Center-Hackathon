@@ -55,8 +55,10 @@ The simulation's energy data describes **Ireland**, not Bournemouth. The hackath
 
 ## Question bank
 
-`data/question_bank.json` contains the 36 supplied questions, their answer choices, correct answers, explanations and source metadata. The supported formats are `MULTIPLE_CHOICE` (four choices), `MYTH_OR_FACT` (two choices) and `HIGHER_OR_LOWER` (two choices). The popup uses the same controls for all formats, highlights the correct answer after selection and applies a consequence. A correct answer rewards 10% of current gross monthly income and 1 public-acceptance point; a wrong answer loses 5% and 1.5 acceptance points. These are game-balance assumptions, and the result is shown in the explanation popup.
+`data/question_bank.json` contains the 36 supplied questions plus a fossil-fuel myth question built from the EirGrid data, their answer choices, correct answers, explanations and source metadata. The supported formats are `MULTIPLE_CHOICE` (four choices), `MYTH_OR_FACT` (two choices) and `HIGHER_OR_LOWER` (two choices). The popup uses the same controls for all formats, highlights the correct answer after selection and applies a consequence. A correct answer rewards 10% of current gross monthly income and 1 public-acceptance point; a wrong answer loses 5% and 1.5 acceptance points. These are game-balance assumptions, and the result is shown in the explanation popup.
 
+- `opening_question_id` (the Ireland 23% question) is always the first question of a game, so the opening hook is predictable. All others are shuffled.
+- A question can carry `survey_compare` (a `survey.json` question key, the answer options to count, and a phrase). Its reveal then adds an OPINION line such as "54% of 189 surveyed people in Ireland believed…" beside the correct answer, so guess, opinion and data appear side by side.
 - Change the file's `interval_seconds` to set the delay between mandatory conferences (default: 60). This counts real seconds of active play, regardless of 1×/2×/4× game speed. Optional conferences use the same question pool and reset the timer.
 - Welcome, tutorial, manual pause, other popups and the end screen stop the quiz timer. The first quiz waits for a full interval after onboarding. Reading an answer does not create a backlog of quizzes.
 - Questions are shuffled for each new game. Drawing a question removes it from that game's pool. After every enabled question has appeared, quizzes stop until **Restart town** or **Play again** creates a fresh game; there is no mid-game recycling.
@@ -64,6 +66,10 @@ The simulation's energy data describes **Ireland**, not Bournemouth. The hackath
 - Invalid entries fail loading with an error identifying the problem. Source metadata stays in the JSON and is not displayed in the popup. The supplied wording is preserved; implementing this bank does not independently verify the external claims.
 
 `data/events.json` now contains scheduled gameplay policy decisions only. Welcome, tutorial and final opinion prompts remain separate from the random question pool.
+
+## Demo shortcut
+
+Press **F9** during play to skip the quiet early years. It jumps to October 2022 with a solar farm, about £2.6m in the bank, and data centres topped up to 45 compute on quiet sites, keeping anything you already built. Demand (49) then just outgrows supply, and the renewable-rule decision arrives three game-months later. The full presentation plan is in [docs/DEMO.md](docs/DEMO.md).
 
 ## Regenerating data
 

@@ -388,7 +388,42 @@ func summary() -> Dictionary:
 	return {"score": score, "grade": grade, "coverage": coverage}
 
 
+## Hidden demo shortcut (F9): skip the quiet early years and land in late 2022,
+## just before the renewable-rule decision, with demand starting to outgrow supply.
+func load_demo_state() -> void:
+	if simulation.state.get("finished", false):
+		return
+	if tutorial.active:
+		tutorial.finish()
+	if not active_event.is_empty():
+		active_event = {}
+		_event_answered = false
+		ui.hide_modal()
+	_cancel()
+	simulation.state["money"] = 20000.0
+	# Top up to 45 compute (a colocation plus an enterprise), keeping anything the
+	# presenter already built, so demand (49 in Oct 2022) is just out of reach.
+	for id: String in ["colocation", "enterprise"]:
+		if float(simulation.state["compute_capacity"]) + float(data.buildings[id]["compute_capacity"]) <= 45.0:
+			var cell := building_manager.suggest_site(id)
+			if cell != TownMap.NO_CELL:
+				building_manager.try_build(cell, id)
+	var solar := building_manager.suggest_site("solar_farm")
+	if solar != TownMap.NO_CELL:
+		building_manager.try_build(solar, "solar_farm")
+	simulation.jump_to(2022, 10)
+	simulation.state["money"] = 2600.0
+	simulation.state_changed.emit(simulation.state.duplicate(true))
+	_quiz_elapsed = 0.0
+	ui.show_message("Demo: jumped to October 2022. Demand is catching up with your data centres.")
+	set_speed(1.0)
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F9:
+		load_demo_state()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ui_cancel"):
 		_cancel()
 		get_viewport().set_input_as_handled()

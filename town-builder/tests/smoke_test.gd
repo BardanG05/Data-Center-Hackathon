@@ -137,6 +137,7 @@ func _run() -> void:
 	game.queue_free()
 	await process_frame
 	await _tutorial_test()
+	await _demo_test()
 	print("%d checks, %d failures" % [checks, failures.size()])
 	for f in failures:
 		print("FAIL: " + f)
@@ -191,6 +192,42 @@ func _tutorial_test() -> void:
 	_check(not sim.paused, "Time runs after the tutorial and quiz")
 	var tip: Array = game.advice(sim.state)
 	_check(not String(tip[0]).is_empty(), "Advisor always has a suggestion")
+	game.queue_free()
+	await process_frame
+
+
+## Opening hook, survey comparison and the F9 demo jump.
+func _demo_test() -> void:
+	game = load("res://scenes/main.tscn").instantiate()
+	root.add_child(game)
+	await process_frame
+	var sim: SimulationManager = game.simulation
+	sim.set_process(false)
+	game.ui.event_option_chosen.emit(1)
+	game._on_press_conference_requested()
+	_check(game.active_event.get("id") == "ireland_dc_electricity_2025", "The first press conference is the Ireland 23% question")
+	await _screenshot("14-opening-question")
+	game.ui.event_option_chosen.emit(1)
+	var body: String = game.ui._modal_body.text
+	_check(body.contains("surveyed people in Ireland") and body.contains("54%"), "The reveal compares with what surveyed people believed")
+	await _screenshot("15-opening-reveal")
+	game.ui.event_closed.emit()
+	var fossil: Dictionary = game.data.survey_comparison({"survey_compare": {"question": "belief_fossil_fuels", "options": ["True"]}})
+	_check(fossil.get("pct") == "52", "Fossil-fuel belief share is 101/195 (got %s)" % fossil.get("pct"))
+	game._on_build_selected("colocation")
+	game._on_cell_clicked(game.building_manager.suggest_site("colocation"))
+	game.load_demo_state()
+	_check(is_equal_approx(sim.state["compute_capacity"], 45.0), "F9 tops up to 45 compute even after a live build (got %d)" % sim.state["compute_capacity"])
+	_check(sim.state["compute_local"] < sim.state["compute_demand"], "After F9, demand is just out of reach")
+	_check(sim.state["year"] == 2022 and sim.state["month"] == 10, "F9 jumps to October 2022")
+	_check(sim.placed.size() >= 3 and sim.state["dc_count"] >= 2, "The demo town has data centres and a solar farm")
+	_check(not sim.paused and not game.ui.is_modal_open(), "The demo resumes play")
+	_check(not game.fired_events.has("renewable_rule"), "The 2023 policy decision is still ahead")
+	await _screenshot("16-demo-state")
+	for i in range(3):
+		sim.step_month()
+	_check(game.active_event.get("id") == "renewable_rule", "The policy decision arrives three months after the jump")
+	await _screenshot("17-demo-policy")
 	game.queue_free()
 	await process_frame
 

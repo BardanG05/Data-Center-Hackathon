@@ -771,7 +771,11 @@ func reveal_event(event: Dictionary, chosen: int) -> void:
 			var result_color := GREEN if correct else RED
 			var verdict := "You answered correctly. The public trust you more." if correct else "You answered incorrectly. The public trust you less."
 			header += "[color=#%s][b]%s[/b] %s budget (%d%% of monthly income) · %s public trust[/color]\n\n" % [result_color.to_html(false), verdict, money_text, income_percent, acceptance_text]
-		_modal_body.text = header + String(event["explanation"])
+		var belief := data.survey_comparison(event)
+		if not belief.is_empty():
+			header += "%s %s%% of %s surveyed people in Ireland %s.\n\n" % [_tag("opinion"), belief["pct"], belief["n"], belief["text"]]
+		var fact_tag := _tag("data") + " " if String(event.get("source_type", "")) == "SUPPLIED_DATA" else ""
+		_modal_body.text = header + fact_tag + String(event["explanation"])
 		for i in range(_modal_options.get_child_count()):
 			var button: Button = _modal_options.get_child(i)
 			button.disabled = true
@@ -781,6 +785,12 @@ func reveal_event(event: Dictionary, chosen: int) -> void:
 			elif i == chosen:
 				button.add_theme_stylebox_override("disabled", _style(Color("472b2c"), 8, RED))
 				button.add_theme_color_override("font_disabled_color", RED)
+			else:
+				# Only the chosen and correct answers stay, leaving room for the explanation.
+				button.hide()
+		var shown := 1 if chosen == answer else 2
+		_modal_options.position.y = 610 - shown * 56
+		_modal_body.size.y = _modal_options.position.y - 150
 	else:
 		header = "[b]You chose:[/b] %s\n\n" % event["options"][chosen]
 		_modal_body.text = header + _fill(String(event.get("reveal", "")))
@@ -828,8 +838,10 @@ func reveal_attitude(choice: String) -> void:
 	for option: String in q["counts"]:
 		var share := float(q["counts"][option]) / float(q["valid_n"])
 		var bar := "█".repeat(roundi(share * 60.0))
-		var mark := "  ◀ you" if option == choice else ""
-		t += "[font_size=13]%s[/font_size]\n[color=%s]%s[/color] %d%%%s\n" % [option, "#ffc970" if option == choice else "#8fe3a4", bar, roundi(share * 100.0), mark]
+		var mark := "  [b]◀ you[/b]" if option == choice else ""
+		t += "[color=%s]%s[/color] %d%%  %s%s\n" % ["#ffc970" if option == choice else "#8fe3a4", bar, roundi(share * 100.0), option, mark]
+	# The answer buttons are gone, so give the results the full card height.
+	_modal_body.size.y = 460
 	_modal_body.text = t
 	_set_options([])
 	_modal_continue.show()

@@ -16,6 +16,8 @@ const OPTION_COUNTS: Dictionary = {
 var error_message: String = ""
 var interval_seconds: float = DEFAULT_INTERVAL_SECONDS
 var shown_ids: Array[String] = []
+## Drawn first in every game, so the opening hook is predictable. Empty = fully random.
+var opening_question_id: String = ""
 var _questions: Array[Dictionary] = []
 var _unused: Array[Dictionary] = []
 
@@ -26,6 +28,7 @@ func configure(bank_data: Dictionary) -> bool:
 	_unused.clear()
 	shown_ids.clear()
 	interval_seconds = DEFAULT_INTERVAL_SECONDS
+	opening_question_id = ""
 	if bank_data.get("schema_version") != 1:
 		return _fail("question_bank.json must use schema_version 1.")
 	var interval: Variant = bank_data.get("interval_seconds", DEFAULT_INTERVAL_SECONDS)
@@ -71,6 +74,12 @@ func configure(bank_data: Dictionary) -> bool:
 			return _fail("%s correct_answer must exactly match one option." % location)
 		if entry.get("enabled", true):
 			enabled_questions.append(entry.duplicate(true))
+	var opening: Variant = bank_data.get("opening_question_id", "")
+	if not opening is String:
+		return _fail("question_bank.json opening_question_id must be a string.")
+	if not String(opening).is_empty() and not ids.has(opening):
+		return _fail("question_bank.json opening_question_id '%s' is not a question id." % opening)
+	opening_question_id = opening
 	interval_seconds = float(interval)
 	_questions = enabled_questions
 	reset()
@@ -81,6 +90,11 @@ func reset() -> void:
 	shown_ids.clear()
 	_unused.assign(_questions.duplicate(true))
 	_unused.shuffle()
+	# draw() pops from the back, so park the opening question there.
+	for i in range(_unused.size()):
+		if _unused[i]["id"] == opening_question_id:
+			_unused.append(_unused.pop_at(i))
+			break
 
 
 func draw() -> Dictionary:

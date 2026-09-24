@@ -94,6 +94,18 @@ func step_month() -> void:
 	month_advanced.emit(state["year"], state["month"])
 
 
+## Demo shortcut: move the calendar and let acceptance settle at its current target.
+func jump_to(year: int, month: int) -> void:
+	state["year"] = year
+	state["month"] = month
+	state["months_elapsed"] = (year - int(_data.scenario["start_year"])) * 12 + month - 1
+	_accumulator = 0.0
+	_recalculate()
+	state["coverage_total"] = float(state["months_elapsed"]) * 0.8
+	state["acceptance"] = float(state["acceptance_target"])
+	_emit()
+
+
 func can_afford(cost: float) -> bool:
 	return not state.is_empty() and cost >= 0.0 and float(state["money"]) >= cost
 

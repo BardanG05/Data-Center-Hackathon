@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "interval_seconds": 60.0,
+  "opening_question_id": "ireland_dc_electricity_2025",
   "questions": [
     {
       "id": "ireland_dc_electricity_2025",
@@ -16,7 +17,35 @@
       "correct_answer": "23%",
       "explanation": "The supplied dataset records 7,663 GWh of data-centre consumption out of 32,986 GWh total electricity consumption, which is about 23.2%.",
       "source_type": "SUPPLIED_DATA",
-      "source_label": "BCP Data.xlsx - CSO Data Centre Electricity Consumption"
+      "source_label": "BCP Data.xlsx - CSO Data Centre Electricity Consumption",
+      "survey_compare": {
+        "question": "belief_significant_share",
+        "options": [
+          "True"
+        ],
+        "text": "believed data centres use a 'significant proportion' of Ireland's electricity"
+      }
+    },
+    {
+      "id": "irish_dc_fossil_fuels",
+      "type": "MYTH_OR_FACT",
+      "category": "REAL_DATA",
+      "question": "All data centres in Ireland run on fossil fuels.",
+      "options": [
+        "Myth",
+        "Fact"
+      ],
+      "correct_answer": "Myth",
+      "explanation": "EirGrid figures in the supplied dataset show renewables met about 40.7% of Ireland's electricity demand in 2025, up from 27.3% in 2015. Grid-connected data centres draw on that mix, so 'all fossil fuels' is not supported, although most of the remainder is still fossil-fuelled.",
+      "source_type": "SUPPLIED_DATA",
+      "source_label": "BCP Data.xlsx - EirGrid RES KPI",
+      "survey_compare": {
+        "question": "belief_fossil_fuels",
+        "options": [
+          "True"
+        ],
+        "text": "believed this was a fact"
+      }
     },
     {
       "id": "hyperscale_water",
@@ -360,7 +389,14 @@
       "correct_answer": "Fact",
       "explanation": "Data-centre waste heat can potentially be recovered and used through district-heating or other heat-reuse systems instead of simply being released.",
       "source_type": "GENERAL",
-      "source_label": "Data-centre heat recovery"
+      "source_label": "Data-centre heat recovery",
+      "survey_compare": {
+        "question": "belief_waste_heat",
+        "options": [
+          "True"
+        ],
+        "text": "believed data centres can redirect waste heat to nearby homes and businesses"
+      }
     },
     {
       "id": "renewable_support",
