@@ -51,7 +51,7 @@ func _run() -> void:
 	await _screenshot("02-quiz-reveal")
 	game.ui.event_closed.emit()
 	_check(not game.ui.is_modal_open() and not sim.paused, "Closing the quiz resumes time")
-	_check(game.ui._build_buttons["colocation"].text.contains("site price varies"), "Build buttons leave site price for the map hover")
+	_check(game.ui._build_buttons["colocation"].text == String(data.buildings["colocation"]["name"]), "Build buttons show only the building name")
 	sim.paused = true
 
 	# Placement rules

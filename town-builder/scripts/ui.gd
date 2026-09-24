@@ -107,7 +107,7 @@ func configure(game_data: GameData, sim: SimulationManager) -> void:
 	simulation = sim
 	for id: String in data.building_order:
 		var def: Dictionary = data.buildings[id]
-		_build_buttons[id].text = "%s\nsite price varies" % def["name"]
+		_build_buttons[id].text = String(def["name"])
 		_build_buttons[id].tooltip_text = _building_summary(def)
 	set_press_conference_available(data.quiz_bank.remaining_count())
 	_show_default()
