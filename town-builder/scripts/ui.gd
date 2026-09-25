@@ -403,7 +403,11 @@ func _update_breakdown() -> void:
 	lines += "[color=#ffc970]−%.1f[/color] objecting neighbours (%s people)\n" % [p.get("local", 0.0), GameData.thousands(_state.get("objectors", 0.0))]
 	lines += "[color=#ffc970]−%.1f[/color] data centres on greenfield land\n" % p.get("greenfield", 0.0)
 	var other := float(p.get("curtailment", 0.0)) + float(p.get("blackout", 0.0)) + float(p.get("water", 0.0)) + float(p.get("policy", 0.0))
-	lines += "[color=#ffc970]−%.1f[/color] blackouts, hosepipe bans, throttling, press" % other
+	# Quiz trust bonuses can make this net positive.
+	if other < 0.0:
+		lines += "[color=#8fe3a4]+%.1f[/color] press conferences and press coverage" % -other
+	else:
+		lines += "[color=#ffc970]−%.1f[/color] blackouts, hosepipe bans, throttling, press" % other
 	_breakdown.text = lines
 
 
